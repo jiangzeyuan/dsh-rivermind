@@ -167,4 +167,4 @@ RIVERMIND_DSH_PORT=3081 npm run start:dsh
     tests/          规则与 Agent 边界测试
     docs/           架构与后续开发方向
 
-架构说明见 [docs/architecture.md](docs/architecture.md)。
+详细说明见 [文档导航](docs/README.md) 和 [v0.1 技术方案](docs/technical-design-v0.1.md)；[架构速查](docs/architecture.md) 保留为简版。

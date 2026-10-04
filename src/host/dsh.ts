@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { estimateEquity } from '../core/cards.js';
-import { PokerError, type Action, type Card, type Decision, type GameView } from '../core/types.js';
+import { PokerError, type Action, type Card, type Decision, type DecisionTrace, type GameView } from '../core/types.js';
 import type { OpponentMemory } from './memory.js';
 
 // Minimal, verified 0.2.0-rc.2 SDK boundary. Runtime services are supplied by DSH;
@@ -30,7 +30,21 @@ export interface DshHostContext {
 }
 interface Pending {
   view: GameView; memory: OpponentMemory; signal: AbortSignal; calls: number; recalled: boolean;
+  trace: DecisionTrace;
   resolve(decision: Decision): void; reject(error: Error): void;
+}
+export class DecisionFailure extends Error {
+  constructor(readonly trace: DecisionTrace) { super('Poker agent decision failed: ' + trace.failure); }
+}
+async function withSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  signal.throwIfAborted();
+  let onAbort: () => void = () => {};
+  try {
+    return await Promise.race([promise, new Promise<never>((_, reject) => {
+      onAbort = () => reject(signal.reason);
+      signal.addEventListener('abort', onAbort, { once: true });
+    })]);
+  } finally { signal.removeEventListener('abort', onAbort); }
 }
 export interface Opponent {
   readonly sessionId?: string;
@@ -53,6 +67,7 @@ export class DshOpponent implements Opponent {
   #handle?: AgentHandle;
   #pending?: Pending;
   #creating?: Promise<AgentHandle>;
+  #disposed = false;
   constructor(private readonly ctx: DshHostContext) {}
   private async handle(signal: AbortSignal): Promise<AgentHandle> {
     this.#creating ??= this.ctx.agents.create({
@@ -68,7 +83,9 @@ export class DshOpponent implements Opponent {
             'Your observation contains only your cards and public information. Do not invent hidden cards. ' +
             'Use the supplied legal actions. Raise amounts are TOTAL contributions in the current street. ' +
             'You may use at most six tool calls per decision. You have no coding or file tools. ' +
-            'Recall public opponent statistics when useful; fewer than ten hands is weak evidence. ' +
+            'Recall public opponent statistics when useful; use conditions matching street, position and bet size. ' +
+            'Condition opportunities, not total hands, are the denominator; fewer than ten opportunities is weak evidence. ' +
+            'Use observation.facts for contestable pot odds and effective stacks, excluding uncalled returns. ' +
             'Submit exactly one action with submit_action, copying handId and revision from the observation. ' +
             'Give a concise Chinese justification citing odds or public behavior, not a private reasoning transcript; ' +
             'do not disclose your exact hole cards in the justification. Only cite memoryIds returned by recall_opponent. ' +
@@ -101,13 +118,16 @@ export class DshOpponent implements Opponent {
               memoryIds.some(id => id !== pending.memory.id || pending.memory.handsObserved === 0)) throw new Error('Unknown memory evidence.');
           exec.concludeTurn();
           this.#pending = undefined; // Reject duplicate or late tool submissions immediately.
-          pending.resolve({ action, reason: args.rationale, source: 'dsh', memoryIds });
+          pending.resolve({ action, reason: args.rationale, source: 'dsh', memoryIds, trace: pending.trace });
           return { accepted: true, handId: pending.view.handId, revision: pending.view.revision };
         }, ['handId', 'revision', 'type', 'rationale']);
       },
     });
-    try { this.#handle = await this.#creating; return this.#handle; }
-    catch (error) { this.#creating = undefined; throw error; }
+    try {
+      const handle = await this.#creating;
+      if (this.#disposed) { await handle.dispose(); throw new Error('Poker opponent disposed.'); }
+      this.#handle = handle; return handle;
+    } catch (error) { this.#creating = undefined; throw error; }
   }
   private registerTool(scoped: ScopedContext, name: string, description: string, properties: Record<string, unknown>,
     safe: boolean, execute: (args: Record<string, unknown>, pending: Pending, exec: ToolExecution) => unknown,
@@ -121,40 +141,65 @@ export class DshOpponent implements Opponent {
       execute: (args, exec) => {
         const pending = this.#pending;
         if (!pending || pending.signal.aborted || exec.signal.aborted) throw new Error('No live poker decision.');
+        const started = performance.now();
+        const record = { name, status: 'ok' as 'ok' | 'error', durationMs: 0 };
+        pending.trace.tools.push(record);
         pending.calls++;
         if (pending.calls > 6) {
           const error = new Error('Poker tool budget exhausted.');
+          record.status = 'error';
           pending.reject(error);
           throw error;
         }
-        return execute(args, pending, exec);
+        try {
+          const value = execute(args, pending, exec);
+          if (name === 'estimate_equity') {
+            const estimate = value as { equity: number; trials: number; assumption: string };
+            pending.trace.equity = { value: estimate.equity, trials: estimate.trials, assumption: estimate.assumption };
+          }
+          return value;
+        } catch (error) { record.status = 'error'; throw error; }
+        finally { record.durationMs = performance.now() - started; }
       },
     });
   }
   async decide(view: GameView, memory: OpponentMemory, signal: AbortSignal): Promise<Decision> {
-    signal.throwIfAborted();
-    const handle = await this.handle(signal);
-    // Idle alone is not a decision correlation; the bound submit tool resolves the exact request.
-    await Promise.race([handle.agent.whenIdle(), new Promise<never>((_, reject) => {
-      if (signal.aborted) reject(signal.reason);
-      else signal.addEventListener('abort', () => reject(signal.reason), { once: true });
-    })]);
-    signal.throwIfAborted();
-    return new Promise<Decision>((resolve, reject) => {
-      const onAbort = () => {
-        this.#pending = undefined;
-        handle.agent.cancel(new Error('Poker decision deadline exceeded.'));
-        reject(signal.reason);
-      };
-      const cleanup = () => signal.removeEventListener('abort', onAbort);
-      this.#pending = { view: structuredClone(view), memory: structuredClone(memory), signal, calls: 0, recalled: false,
-        resolve: decision => { cleanup(); resolve(decision); },
-        reject: error => { cleanup(); this.#pending = undefined; handle.agent.cancel(error); reject(error); } };
-      signal.addEventListener('abort', onAbort, { once: true });
-      handle.agent.followup({ id: randomUUID(), role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: 'Your turn. Observation:\n' + JSON.stringify(view) }] });
-    });
+    if (this.#disposed) throw new Error('Poker opponent disposed.');
+    const started = performance.now();
+    const trace: DecisionTrace = { facts: structuredClone(view.facts), durationMs: 0, tools: [] };
+    try {
+      signal.throwIfAborted();
+      const handle = await withSignal(this.handle(signal), signal);
+      // Idle alone is not a decision correlation; the bound submit tool resolves the exact request.
+      await withSignal(handle.agent.whenIdle(), signal);
+      signal.throwIfAborted();
+      const decision = await new Promise<Decision>((resolve, reject) => {
+        const onAbort = () => {
+          this.#pending = undefined;
+          handle.agent.cancel(new Error('Poker decision deadline exceeded.'));
+          reject(signal.reason);
+        };
+        const cleanup = () => signal.removeEventListener('abort', onAbort);
+        this.#pending = { view: structuredClone(view), memory: structuredClone(memory), signal, calls: 0, recalled: false, trace,
+          resolve: decision => { cleanup(); resolve(decision); },
+          reject: error => { cleanup(); this.#pending = undefined; handle.agent.cancel(error); reject(error); } };
+        signal.addEventListener('abort', onAbort, { once: true });
+        try {
+          handle.agent.followup({ id: randomUUID(), role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: 'Your turn. Observation:\n' + JSON.stringify(view) }] });
+        } catch (error) { this.#pending?.reject(error instanceof Error ? error : new Error('Agent input failed.')); }
+      });
+      trace.durationMs = performance.now() - started;
+      return decision;
+    } catch (error) {
+      this.#handle?.agent.cancel(new Error('Poker decision failed.'));
+      trace.durationMs = performance.now() - started;
+      trace.failure = signal.aborted && signal.reason?.name === 'TimeoutError' ? 'timeout'
+        : error instanceof Error && error.message === 'Poker tool budget exhausted.' ? 'tool-budget' : 'runtime';
+      throw new DecisionFailure(trace);
+    }
   }
   async dispose(): Promise<void> {
+    this.#disposed = true;
     this.#pending?.reject(new Error('Poker opponent disposed.'));
     this.#pending = undefined;
     await this.#handle?.dispose();

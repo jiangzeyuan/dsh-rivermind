@@ -17,7 +17,7 @@ export function apply(ctx: DshHostContext, config: { dataDir?: string } = {}): v
   const service = new PokerService(resolve(dataDir), new DshOpponent(ctx));
   // Exact routes join DSH's authenticated /api transport, including the desktop
   // local carrier, without creating a second generic RPC channel.
-  for (const endpoint of ['state', 'deal', 'action', 'mode', 'reset']) {
+  for (const endpoint of ['state', 'deal', 'action', 'mode', 'reset', 'history', 'review']) {
     ctx.connection.fetch.register({
       path: '/api/rivermind/' + endpoint, methods: ['POST'], requestBody: 'buffered',
       fetch: async request => {

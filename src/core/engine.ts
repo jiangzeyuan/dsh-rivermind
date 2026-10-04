@@ -1,4 +1,5 @@
 import { assertDeck, compareRanks, evaluate, HAND_NAMES, shuffledDeck } from './cards.js';
+import { betSizeBucket, decisionFacts } from './facts.js';
 import { PokerError, type Action, type Card, type Decision, type GameView, type HandEvent,
   type HandResult, type LegalActions, type PlayerId, type Street } from './types.js';
 
@@ -29,7 +30,7 @@ export class PokerTable {
   #showdown = false;
 
   constructor(private readonly options: { stacks?: [number, number]; smallBlind?: number;
-    bigBlind?: number; deckFactory?: () => Card[] } = {}) {
+    bigBlind?: number; deckFactory?: () => Card[]; initialButton?: 0 | 1 } = {}) {
     this.#stacks = [...(options.stacks ?? [2000, 2000])];
     this.#lastRaise = this.bigBlind;
     if (!Number.isSafeInteger(this.smallBlind) || !Number.isSafeInteger(this.bigBlind) ||
@@ -53,7 +54,7 @@ export class PokerTable {
     const deck = (this.options.deckFactory ?? shuffledDeck)();
     assertDeck(deck); // Validate before mutating any table state.
     this.#deck = [...deck];
-    this.#button = this.#handNumber % 2;
+    this.#button = (this.#handNumber + (this.options.initialButton ?? 0)) % 2;
     this.#handNumber++;
     this.#revision++;
     this.#street = 'preflop';
@@ -68,7 +69,7 @@ export class PokerTable {
     this.#showdown = false;
     this.#currentBet = this.bigBlind;
     this.#lastRaise = this.bigBlind;
-    for (let i = 0; i < 4; i++) this.#holes[(this.#button + i) % 2]!.push(this.draw());
+    for (let i = 0; i < 4; i++) this.#holes[(1 - this.#button + i) % 2]!.push(this.draw());
     this.event({ kind: 'started', message: '第 ' + this.#handNumber + ' 手牌开始' });
     this.commit(this.#button, this.smallBlind);
     this.event({ kind: 'blind', playerId: IDS[this.#button]!, amount: this.smallBlind, message: NAMES[this.#button] + ' 支付小盲 ' + this.smallBlind });
@@ -109,6 +110,10 @@ export class PokerTable {
           action.amount < legal.raise.min || action.amount > legal.raise.max))) {
       throw new PokerError('ILLEGAL_ACTION', '该行动或下注金额不符合当前规则。', 400);
     }
+    const potBefore = this.#contributed.reduce((sum, value) => sum + value, 0);
+    const opposingBet = this.#events.findLast(event => event.street === this.#street && event.kind === 'action' &&
+      event.playerId !== playerId && event.action?.type === 'raise');
+    const facingBet = (legal.call ?? 0) > 0 && !!opposingBet;
     this.#revision++;
     let amount = 0;
     if (action.type === 'fold') {
@@ -131,7 +136,10 @@ export class PokerTable {
       action.type === 'call' ? '跟注 ' + amount : '下注至 ' + (action as { amount: number }).amount;
     this.event({ kind: 'action', playerId, action: structuredClone(action), amount,
       message: NAMES[i] + ' ' + label, source: decision.source, reason: decision.reason.slice(0, 500),
-      memoryIds: [...decision.memoryIds].slice(0, 8) });
+      memoryIds: [...decision.memoryIds].slice(0, 8), trace: decision.trace ? structuredClone(decision.trace) : undefined,
+      context: { position: i === this.#button ? 'button' : 'big-blind', potBefore, toCall: legal.call ?? 0,
+        facingBet, facingBetSize: facingBet ? opposingBet?.context?.betSize ?? null : null,
+        betSize: action.type === 'raise' ? betSizeBucket(amount / Math.max(1, potBefore)) : null } });
     if (action.type === 'fold') {
       this.finish([1 - i], 'fold');
       return;
@@ -142,26 +150,27 @@ export class PokerTable {
   viewFor(playerId: PlayerId, includeReview = false): GameView {
     if (!IDS.includes(playerId)) throw new PokerError('UNKNOWN_PLAYER', '未知玩家。', 403);
     const review = includeReview && playerId === 'human' && this.complete;
+    const players = IDS.map((id, i) => ({
+      id, name: NAMES[i]!, stack: this.#stacks[i]!, streetBet: this.#bets[i]!,
+      contributed: this.#contributed[i]!, dealer: i === this.#button, folded: this.#folded[i]!,
+      cards: id === playerId || this.#showdown ? [...this.#holes[i]!] : this.#holes[i]!.map(() => null),
+    }));
+    const legal = this.legalFor(playerId);
     return {
       matchId: this.matchId, handId: this.handId, handNumber: this.#handNumber,
       revision: this.#revision, street: this.#street, board: [...this.#board],
       pot: this.#contributed.reduce((sum, value) => sum + value, 0),
       smallBlind: this.smallBlind, bigBlind: this.bigBlind, actingPlayer: this.actingPlayer,
-      players: IDS.map((id, i) => ({
-        id, name: NAMES[i]!, stack: this.#stacks[i]!, streetBet: this.#bets[i]!,
-        contributed: this.#contributed[i]!, dealer: i === this.#button, folded: this.#folded[i]!,
-        cards: id === playerId || this.#showdown ? [...this.#holes[i]!] : this.#holes[i]!.map(() => null),
-      })),
-      legal: this.legalFor(playerId),
+      players, legal, facts: decisionFacts(players, playerId, legal),
       events: this.#events.map(event => {
-        const { reason, memoryIds, ...visible } = event;
+        const { reason, memoryIds, trace, ...visible } = event;
         return review ? structuredClone(event) : structuredClone(visible);
       }),
       result: this.#result ? structuredClone(this.#result) : null,
     };
   }
   publicHistory(): HandEvent[] {
-    return this.#events.map(({ reason, memoryIds, ...event }) => structuredClone(event));
+    return this.#events.map(({ reason, memoryIds, trace, ...event }) => structuredClone(event));
   }
   private event(event: Omit<HandEvent, 'id' | 'handId' | 'street'>): void {
     this.#events.push({ id: this.#events.length + 1, handId: this.handId, street: this.#street, ...event });
@@ -209,12 +218,6 @@ export class PokerTable {
     this.event({ kind: 'street', message: '公共牌更新：' + this.#board.join(' ') });
   }
   private showdown(): void {
-    // Heads-up table stakes: return unmatched contributions; no side pot is needed.
-    const matched = Math.min(...this.#contributed);
-    for (let i = 0; i < 2; i++) {
-      this.#stacks[i] = this.#stacks[i]! + this.#contributed[i]! - matched;
-      this.#contributed[i] = matched;
-    }
     const ranks = this.#holes.map(hole => evaluate([...hole, ...this.#board]));
     const comparison = compareRanks(ranks[0]!, ranks[1]!);
     this.#showdown = true;
@@ -222,6 +225,17 @@ export class PokerTable {
       'showdown', HAND_NAMES[ranks[comparison >= 0 ? 0 : 1]![0]!]!);
   }
   private finish(winners: number[], reason: 'fold' | 'showdown', handName?: string): void {
+    const matched = Math.min(...this.#contributed);
+    for (let i = 0; i < 2; i++) {
+      const returned = this.#contributed[i]! - matched;
+      if (returned > 0) {
+        this.#stacks[i] = this.#stacks[i]! + returned;
+        this.#bets[i] = this.#bets[i]! - returned;
+        this.#contributed[i] = matched;
+        this.event({ kind: 'refund', playerId: IDS[i]!, amount: returned,
+          message: NAMES[i] + ' 收回未被跟注的 ' + returned });
+      }
+    }
     const pot = this.#contributed.reduce((sum, value) => sum + value, 0);
     const each = Math.floor(pot / winners.length);
     winners.forEach((i, n) => { this.#stacks[i] = this.#stacks[i]! + each + (n === 0 ? pot % winners.length : 0); });

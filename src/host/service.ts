@@ -4,7 +4,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { baselineDecision } from '../core/baseline.js';
 import { PokerTable } from '../core/engine.js';
 import { PokerError, type Action, type Decision, type GameView } from '../core/types.js';
-import type { Opponent } from './dsh.js';
+import { DecisionFailure, type Opponent } from './dsh.js';
+import { ReviewStore, type HistoryPage, type SavedReview } from './reviews.js';
 import { PlayerMemory, type OpponentMemory } from './memory.js';
 
 export type Mode = 'baseline' | 'dsh';
@@ -15,6 +16,7 @@ export interface TableSnapshot extends GameView {
 export class PokerService {
   #table = new PokerTable();
   #memory: PlayerMemory;
+  #reviews: ReviewStore;
   #busy = false;
   #issue: string | null = null;
   #recorded = new Set<string>();
@@ -23,17 +25,23 @@ export class PokerService {
   #abort?: AbortController;
   constructor(dataDir: string, private readonly opponent?: Opponent, private readonly baselineDelay = 450) {
     this.#memory = new PlayerMemory(dataDir);
+    this.#reviews = new ReviewStore(dataDir);
     this.#mode = opponent ? 'dsh' : 'baseline';
   }
   snapshot(): TableSnapshot {
     return { ...this.#table.viewFor('human', true), runtime: { mode: this.#mode, dshAvailable: !!this.opponent,
       busy: this.#busy, sessionId: this.opponent?.sessionId ?? null, issue: this.#issue }, memory: this.#memory.recall() };
   }
-  dispatch(endpoint: string, payload: unknown): TableSnapshot {
+  dispatch(endpoint: 'history', payload: unknown): HistoryPage;
+  dispatch(endpoint: 'review', payload: unknown): SavedReview;
+  dispatch(endpoint: string, payload: unknown): TableSnapshot;
+  dispatch(endpoint: string, payload: unknown): TableSnapshot | HistoryPage | SavedReview {
     if (this.#disposed) throw new PokerError('DISPOSED', '训练场已关闭。');
     if (endpoint === 'state') return this.snapshot();
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new PokerError('BAD_REQUEST', '请求格式错误。', 400);
     const body = payload as Record<string, unknown>;
+    if (endpoint === 'history') return this.#reviews.list(body.limit === undefined ? 50 : body.limit as number);
+    if (endpoint === 'review') return this.#reviews.get(body.handId);
     if (this.#busy) throw new PokerError('AI_BUSY', 'Iris 正在行动，请稍候。');
     if (endpoint === 'mode') {
       if (body.mode !== 'baseline' && body.mode !== 'dsh') throw new PokerError('BAD_MODE', '未知对手模式。', 400);
@@ -64,7 +72,7 @@ export class PokerService {
     appendFileSync(join(this.#memory.dataDir, 'hands.jsonl'), JSON.stringify({
       handId: this.#table.handId, result: this.#table.viewFor('human').result, events: publicEvents,
     }) + '\n', { mode: 0o600 });
-    appendFileSync(join(this.#memory.dataDir, 'reviews.jsonl'), JSON.stringify({ view: this.#table.viewFor('human', true), memoryBeforeUpdate: this.#memory.recall() }) + '\n', { mode: 0o600 });
+    this.#reviews.append({ view: this.#table.viewFor('human', true), memoryBeforeUpdate: this.#memory.recall() });
     this.#memory.observe(this.#table.handId, publicEvents);
     this.#recorded.add(this.#table.handId);
   }
@@ -85,11 +93,12 @@ export class PokerService {
           try {
             decision = await this.opponent!.decide(view, memory,
               AbortSignal.any([controller.signal, AbortSignal.timeout(25_000)]));
-          } catch {
+          } catch (error) {
             if (controller.signal.aborted) return;
             this.#issue = 'DSH 未在预算内提交合法行动，已执行安全兜底。可在手牌结束后切换为规则陪练。';
             decision = { action: view.legal.check ? { type: 'check' } : { type: 'fold' },
-              source: 'fallback', reason: '模型调用未完成；无需新增筹码时过牌，否则弃牌。', memoryIds: [] };
+              source: 'fallback', reason: '模型调用未完成；无需新增筹码时过牌，否则弃牌。', memoryIds: [],
+              trace: error instanceof DecisionFailure ? error.trace : { durationMs: 0, tools: [], failure: 'runtime' } };
           }
         }
         if (controller.signal.aborted || this.#disposed) return;

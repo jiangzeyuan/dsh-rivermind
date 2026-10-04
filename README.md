@@ -2,9 +2,9 @@
 
 基于 DeepSeek Harness 的德扑 Agent 项目：独立玩家、受限工具、可追溯决策，以及按玩家保存的长期记忆。
 
-当前是第一个可运行里程碑：**你与 Iris 的双人无限注德扑训练桌**。先验证完整牌局和真实 DSH Agent，再扩展到六人桌与策略评估。
+当前为 v0.2 双人训练里程碑：**你与 Iris 的双人无限注德扑训练桌**。在完整牌局和 DSH Agent 接入基础上，加入条件画像、历史复盘与可重复的规则评估。
 
-![DSH 中的 RiverMind 牌桌与决策复盘](docs/images/rivermind-dsh.jpg)
+![v0.1 DSH 牌桌示例，新版增加条件画像和历史复盘](docs/images/rivermind-dsh.jpg)
 
 ## 安装到已有的 DeepSeek Harness
 
@@ -82,10 +82,10 @@ allowBuilds:
 
 ### 预构建包
 
-维护者可以执行 `npm pack` 生成 `rivermind-dsh-plugin-0.1.0.tgz`，并在未来的 GitHub Release 提供下载。构建产物、bundle 配置和文档会进入包，训练数据不会进入。下载后安装：
+维护者可以执行 `npm pack` 生成 `rivermind-dsh-plugin-0.2.0.tgz`，并在未来的 GitHub Release 提供下载。构建产物、bundle 配置和文档会进入包，训练数据不会进入。下载后安装：
 
 ```sh
-dsh plugin --profile desktop add ./rivermind-dsh-plugin-0.1.0.tgz
+dsh plugin --profile desktop add ./rivermind-dsh-plugin-0.2.0.tgz
 ```
 
 这一方式携带构建产物，用户不需要在本地编译 RiverMind。预构建包的离线安装和 Host／客户端入口加载检查已通过；当前尚无已发布的 Release。
@@ -127,11 +127,13 @@ RIVERMIND_DSH_PORT=3081 npm run start:dsh
 - 后端校验行动者、手牌编号、状态版本与合法金额。加注金额表示当前下注轮的累计金额。
 - 独立 Iris Agent：新建会话，不继承其他会话；没有文件、Shell、联网、子 Agent 等全局工具。
 - 四个扑克工具：get_observation、recall_opponent、estimate_equity、submit_action。
-- 决策时记录简短理由与记忆引用；手牌结束后开放当前手牌复盘。
-- 长期保存公开对手统计：观察手数、弃牌手数、翻牌前主动入池手数、出现进攻行动的手数及证据手牌编号。
+- 决策时记录简短理由与记忆引用；手牌结束后开放历史复盘，支持逐步回放、记忆证据跳转与工具摘要。
+- 长期保存公开对手统计与条件画像：按下注轮、位置、下注尺度记录实际回应次数，附样本量、近似区间及证据编号；兼容旧记忆文件。
+- 统一记录未跟注退款，提供可争夺底池赔率、有效筹码和跟注后 SPR。
+- 固定种子配对发牌，比较无记忆、累计统计和条件画像的规则策略收益；评估不调用模型。
 - 明确区分真实 DSH 决策、规则陪练决策和安全兜底。
 
-规则陪练的牌力估算使用未知牌抽样，并假设随机对手范围，不能视为 GTO 求解器。当前未实现六人桌、CFR/RL、自主策略升级、完整历史复盘 UI 或中断牌局恢复。
+规则陪练的牌力估算使用未知牌抽样，并假设随机对手范围，不能视为 GTO 求解器。当前未实现六人桌、CFR/RL、自主策略升级、全量历史索引或中断牌局恢复。
 
 ## 数据
 
@@ -141,14 +143,26 @@ RIVERMIND_DSH_PORT=3081 npm run start:dsh
 
 数据文件：
 
-- iris-memory.json：Iris 对人类玩家的公开行为统计，原子替换写入，跨重启保留。
+- iris-memory.json：schema v2，Iris 对人类玩家的累计统计与条件回应计数；兼容 v1，原子替换写入，跨重启保留。
 - memory-history.jsonl：带版本标识的记忆快照。
 - hands.jsonl：公开手牌事件，不包含底牌或决策理由。
-- reviews.jsonl：供人类复盘的已结束手牌视图与决策理由；不会作为 Agent 观察或记忆工具输入。
+- reviews.jsonl：已结束手牌视图、简短理由、工具摘要与更新前画像；供历史复盘，不作为 Agent 观察或记忆来源。
 
 开发时另有 `.data/rivermind.patch.yml`，它是根据当前项目绝对路径生成的启动覆盖层，不属于训练记忆。
 
 “重新开始训练”会重置筹码和牌局，保留 Iris 的长期统计记忆。不要把 .data/ 提交到仓库。
+
+## 双人记忆评估
+
+在源码项目中执行：
+
+```sh
+npm run eval:heads-up -- --pairs=50 --seeds=7,17,29,43,71 --trials=100
+```
+
+三种规则对手 × 三种记忆模式，共 4,500 手；每手 100BB，配对发牌并交换庄位。画像在各组内累计，评估使用独立内存，不触碰训练记忆。报告默认保存到忽略的 `.data/evaluations/heads-up.json`。
+
+本轮条件画像尚未证明收益提升；规则对手结果不代表 DSH 模型水平。命令、对照数据及限制见 [v0.2 评估报告](docs/evaluation-v0.2.md)。
 
 ## 开发与验证
 
@@ -167,4 +181,4 @@ RIVERMIND_DSH_PORT=3081 npm run start:dsh
     tests/          规则与 Agent 边界测试
     docs/           架构与后续开发方向
 
-详细说明见 [文档导航](docs/README.md) 和 [v0.1 技术方案](docs/technical-design-v0.1.md)；[架构速查](docs/architecture.md) 保留为简版。
+详细说明见 [文档导航](docs/README.md) 和 [v0.2 技术方案](docs/technical-design-v0.2.md)；[架构速查](docs/architecture.md) 保留为简版。

@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "runtime": "rule-baseline",
+  "config": {
+    "pairs": 50,
+    "seeds": [
+      7,
+      17,
+      29,
+      43,
+      71
+    ],
+    "trials": 100
+  },
+  "modelTokens": null,
+  "results": [
+    {
+      "opponent": "fold-heavy",
+      "memoryMode": "none",
+      "hands": 500,
+      "bbPer100": 29.73,
+      "winRate": 0.736,
+      "legalSubmissionRate": 1,
+      "fallbackRate": 0,
+      "decisions": 921,
+      "memoryReferences": 0,
+      "meanDecisionMs": 3.772070901194346,
+      "p95DecisionMs": 4.628832999999986,
+      "seedRuns": [
+        {
+          "seed": 7,
+          "bbPer100": 29.65
+        },
+        {
+          "seed": 17,
+          "bbPer100": 58.099999999999994
+        },
+        {
+          "seed": 29,
+          "bbPer100": 37.949999999999996
+        },
+        {
+          "seed": 43,
+          "bbPer100": 14.800000000000002
+        },
+        {
+          "seed": 71,
+          "bbPer100": 8.15
+        }
+      ]
+    },
+    {
+      "opponent": "fold-heavy",
+      "memoryMode": "aggregate",
+      "hands": 500,
+      "bbPer100": 32.56,
+      "winRate": 0.759,
+      "legalSubmissionRate": 1,
+      "fallbackRate": 0,
+      "decisions": 872,
+      "memoryReferences": 137,
+      "meanDecisionMs": 3.527400758027544,
+      "p95DecisionMs": 3.7295839999997042,
+      "seedRuns": [
+        {
+          "seed": 7,
+          "bbPer100": 35.65
+        },
+        {
+          "seed": 17,
+          "bbPer100": 59.9
+        },
+        {
+          "seed": 29,
+          "bbPer100": 41.94999999999999
+        },
+        {
+          "seed": 43,
+          "bbPer100": 20.8
+        },
+        {
+          "seed": 71,
+          "bbPer100": 4.499999999999999
+        }
+      ]
+    },
+    {
+      "opponent": "fold-heavy",
+      "memoryMode": "conditional",
+      "hands": 500,
+      "bbPer100": 29.490000000000006,
+      "winRate": 0.736,
+      "legalSubmissionRate": 1,
+      "fallbackRate": 0,
+      "decisions": 919,
+      "memoryReferences": 7,
+      "meanDecisionMs": 3.506877488574597,
+      "p95DecisionMs": 3.695499999999811,
+      "seedRuns": [
+        {
+          "seed": 7,
+          "bbPer100": 29.65
+        },
+        {
+          "seed": 17,
+          "bbPer100": 56.89999999999999
+        },
+        {
+          "seed": 29,
+          "bbPer100": 37.949999999999996
+        },
+        {
+          "seed": 43,
+          "bbPer100": 14.800000000000002
+        },
+        {
+          "seed": 71,
+          "bbPer100": 8.15
+        }
+      ]
+    },
+    {
+      "opponent": "calling-station",
+      "memoryMode": "none",
+      "hands": 500,
+      "bbPer100": 190.02000000000024,
+      "winRate": 0.499,
+      "legalSubmissionRate": 1,
+      "fallbackRate": 0,
+      "decisions": 1976,
+      "memoryReferences": 0,
+      "meanDecisionMs": 3.491244676113384,
+      "p95DecisionMs": 3.707125000000815,
+      "seedRuns": [
+        {
+          "seed": 7,
+          "bbPer100": 194.9
+        },
+        {
+          "seed": 17,
+          "bbPer100": 138.59999999999997
+        },
+        {
+          "seed": 29,
+          "bbPer100": 221.59999999999994
+        },
+        {
+          "seed": 43,
+          "bbPer100": 166.14999999999995
+        },
+        {
+          "seed": 71,
+          "bbPer100": 228.85
+        }
+      ]
+    },
+    {
+      "opponent": "calling-station",
+      "memoryMode": "aggregate",
+      "hands": 500,
+      "bbPer100": 190.02000000000024,
+      "winRate": 0.499,
+      "legalSubmissionRate": 1,
+      "fallbackRate": 0,
+      "decisions": 1976,
+      "memoryReferences": 0,
+      "meanDecisionMs": 3.4738030242914784,
+      "p95DecisionMs": 3.70129100000122,
+      "seedRuns": [
+        {
+          "seed": 7,
+          "bbPer100": 194.9
+        },
+        {
+          "seed": 17,
+          "bbPer100": 138.59999999999997
+        },
+        {
+          "seed": 29,
+          "bbPer100": 221.59999999999994
+        },
+        {
+          "seed": 43,
+          "bbPer100": 166.14999999999995
+        },
+        {
+          "seed": 71,
+          "bbPer100": 228.85
+        }
+      ]
+    },
+    {
+      "opponent": "calling-station",
+      "memoryMode": "conditional",
+      "hands": 500,
+      "bbPer100": 190.02000000000024,
+      "winRate": 0.499,
+      "legalSubmissionRate": 1,
+      "fallbackRate": 0,
+      "decisions": 1976,
+      "memoryReferences": 0,
+      "meanDecisionMs": 3.5026165647773544,
+      "p95DecisionMs": 3.7225409999991825,
+      "seedRuns": [
+        {
+          "seed": 7,
+          "bbPer100": 194.9
+        },
+        {
+          "seed": 17,
+          "bbPer100": 138.59999999999997
+        },
+        {
+          "seed": 29,
+          "bbPer100": 221.59999999999994
+        },
+        {
+          "seed": 43,
+          "bbPer100": 166.14999999999995
+        },
+        {
+          "seed": 71,
+          "bbPer100": 228.85
+        }
+      ]
+    },
+    {
+      "opponent": "pressure",
+      "memoryMode": "none",
+      "hands": 500,
+      "bbPer100": 1619.9500000000025,
+      "winRate": 0.369,
+      "legalSubmissionRate": 1,
+      "fallbackRate": 0,
+      "decisions": 2283,
+      "memoryReferences": 0,
+      "meanDecisionMs": 3.4892636662286525,
+      "p95DecisionMs": 3.7192920000015874,
+      "seedRuns": [
+        {
+          "seed": 7,
+          "bbPer100": 1720.4499999999991
+        },
+        {
+          "seed": 17,
+          "bbPer100": 1445.0999999999995
+        },
+        {
+          "seed": 29,
+          "bbPer100": 1812.0499999999997
+        },
+        {
+          "seed": 43,
+          "bbPer100": 1401.7000000000005
+        },
+        {
+          "seed": 71,
+          "bbPer100": 1720.4499999999991
+        }
+      ]
+    },
+    {
+      "opponent": "pressure",
+      "memoryMode": "aggregate",
+      "hands": 500,
+      "bbPer100": 1619.9500000000025,
+      "winRate": 0.369,
+      "legalSubmissionRate": 1,
+      "fallbackRate": 0,
+      "decisions": 2283,
+      "memoryReferences": 0,
+      "meanDecisionMs": 3.500624898817259,
+      "p95DecisionMs": 3.734874999994645,
+      "seedRuns": [
+        {
+          "seed": 7,
+          "bbPer100": 1720.4499999999991
+        },
+        {
+          "seed": 17,
+          "bbPer100": 1445.0999999999995
+        },
+        {
+          "seed": 29,
+          "bbPer100": 1812.0499999999997
+        },
+        {
+          "seed": 43,
+          "bbPer100": 1401.7000000000005
+        },
+        {
+          "seed": 71,
+          "bbPer100": 1720.4499999999991
+        }
+      ]
+    },
+    {
+      "opponent": "pressure",
+      "memoryMode": "conditional",
+      "hands": 500,
+      "bbPer100": 1619.9500000000025,
+      "winRate": 0.369,
+      "legalSubmissionRate": 1,
+      "fallbackRate": 0,
+      "decisions": 2283,
+      "memoryReferences": 0,
+      "meanDecisionMs": 3.495753549277093,
+      "p95DecisionMs": 3.73516699999891,
+      "seedRuns": [
+        {
+          "seed": 7,
+          "bbPer100": 1720.4499999999991
+        },
+        {
+          "seed": 17,
+          "bbPer100": 1445.0999999999995
+        },
+        {
+          "seed": 29,
+          "bbPer100": 1812.0499999999997
+        },
+        {
+          "seed": 43,
+          "bbPer100": 1401.7000000000005
+        },
+        {
+          "seed": 71,
+          "bbPer100": 1720.4499999999991
+        }
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "opponent": "fold-heavy",
+      "memoryMode": "aggregate",
+      "deltaBbPer100": 2.830000000000002,
+      "seedDeltaRange": [
+        -3.6500000000000012,
+        6
+      ]
+    },
+    {
+      "opponent": "fold-heavy",
+      "memoryMode": "conditional",
+      "deltaBbPer100": -0.23999999999999488,
+      "seedDeltaRange": [
+        -1.2000000000000028,
+        0
+      ]
+    },
+    {
+      "opponent": "calling-station",
+      "memoryMode": "aggregate",
+      "deltaBbPer100": 0,
+      "seedDeltaRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "opponent": "calling-station",
+      "memoryMode": "conditional",
+      "deltaBbPer100": 0,
+      "seedDeltaRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "opponent": "pressure",
+      "memoryMode": "aggregate",
+      "deltaBbPer100": 0,
+      "seedDeltaRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "opponent": "pressure",
+      "memoryMode": "conditional",
+      "deltaBbPer100": 0,
+      "seedDeltaRange": [
+        0,
+        0
+      ]
+    }
+  ],
+  "limitations": [
+    "无模型规则策略评估，不代表 DSH 模型表现或职业水平。",
+    "每手重置为 100BB；配对发牌并交换庄位，画像在单个实验组/seed 内累计。",
+    "第二手可使用第一手公开动作；所有实验组顺序一致，不交换私有底牌或未来牌面。",
+    "收益可复现，耗时随机器负载变化；seed 差值范围不是置信区间。",
+    "对手均为固定教学规则，尚无范围求解、token 用量或模型成本评估。"
+  ]
+}

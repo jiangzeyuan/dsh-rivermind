@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Action, Card as CardValue } from '../core/types.js';
 import type { TableSnapshot } from '../host/service.js';
 import type { PokerApi } from './api.js';
+import { ReviewPanel } from './ReviewPanel.js';
 
 const STREET_NAMES = { idle: '准备开始', preflop: '翻牌前', flop: '翻牌', turn: '转牌', river: '河牌', complete: '本手结束' };
 const SOURCE_NAMES = { human: '玩家', baseline: '规则陪练', dsh: 'DSH Agent', fallback: '安全兜底' };
@@ -23,6 +24,8 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
   const [sending, setSending] = useState(false);
   const [amount, setAmount] = useState(40);
   const [tab, setTab] = useState<'events' | 'memory' | 'review'>('events');
+  const [reviewHandId, setReviewHandId] = useState<string | null>(null);
+  const openEvidence = (handId: string) => { setReviewHandId(handId); setTab('review'); };
   const alive = useRef(true);
   const mutating = useRef(false);
   const sequence = useRef(0);
@@ -60,7 +63,6 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
   const betweenHands = state?.street === 'idle' || state?.street === 'complete';
   const outOfChips = state?.players.some(player => player.stack < state.bigBlind);
   const canDeal = !!state && betweenHands && !state.runtime.busy && !sending && !outOfChips;
-  const decisions = state?.street === 'complete' ? state.events.filter(event => event.playerId === 'iris' && event.kind === 'action') : [];
   const action = (value: Action) => command('action', { action: value });
   return <div className={'rm-app' + (embedded ? ' rm-embedded' : '')}>
     <header className="rm-header">
@@ -143,7 +145,7 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
         <section className="rm-inspector"><div className="rm-tabs">
           <button className={tab === 'events' ? 'rm-tab-active' : ''} onClick={() => setTab('events')}>行动记录</button>
           <button className={tab === 'memory' ? 'rm-tab-active' : ''} onClick={() => setTab('memory')}>玩家记忆</button>
-          <button className={tab === 'review' ? 'rm-tab-active' : ''} onClick={() => setTab('review')}>决策复盘</button>
+          <button className={tab === 'review' ? 'rm-tab-active' : ''} onClick={() => setTab('review')}>历史复盘</button>
         </div>
         <div className="rm-inspector-body">
           {tab === 'events' && (state?.events.length ? <ol className="rm-event-list">{state.events.map(event => <li key={event.id}>
@@ -153,17 +155,19 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
           {tab === 'memory' && <div className="rm-memory-panel"><div className="rm-memory-metrics"><div><strong>{state?.memory.handsObserved ?? 0}</strong><span>观察手数</span></div><div><strong>{state?.memory.handsFolded ?? 0}</strong><span>对手弃牌</span></div><div><strong>{state?.memory.aggressiveHands ?? 0}</strong><span>对手进攻</span></div></div>
             <div className="rm-memory-entry"><span className="rm-entry-label">IRIS 对你的公开行为记忆</span><p>{state?.memory.summary ?? '尚无样本。'}</p>
               <small>仅使用公开行动；完成一手牌后更新。</small></div>
-            <div className="rm-memory-entry"><span className="rm-entry-label">证据</span>{state?.memory.evidenceHandIds.length ? state.memory.evidenceHandIds.map(id => <code key={id}>{id.slice(0, 8) + '… · 第 ' + id.split(':').at(-1) + ' 手'}</code>) : <p>暂无历史手牌。样本累积后再判断风格。</p>}</div>
+            <div className="rm-memory-entry"><span className="rm-entry-label">证据</span>{state?.memory.evidenceHandIds.length ? state.memory.evidenceHandIds.map(id => <button className="rm-link" key={id} onClick={() => openEvidence(id)}>{id.slice(0, 8) + '… · 第 ' + id.split(':').at(-1) + ' 手 ↗'}</button>) : <p>暂无历史手牌。样本累积后再判断风格。</p>}</div>
+            {state?.memory.conditions.map(condition => <div className="rm-memory-entry" key={condition.key}>
+              <span className="rm-entry-label">{STREET_NAMES[condition.street]} · {condition.position === 'button' ? '庄位' : '大盲位'} · {{small:'小',medium:'中',large:'大'}[condition.betSize]}尺度下注</span>
+              <p>面对主动下注：弃牌 {condition.folds} / {condition.opportunities} 次（{Math.round(condition.foldRate * 100)}%）</p>
+              <small>约 95% 区间 {Math.round(condition.foldRateInterval[0]*100)}%～{Math.round(condition.foldRateInterval[1]*100)}% · {condition.usable ? '达到最低样本量' : '样本不足，暂不调整策略'}</small>
+              {condition.evidenceHandIds.map(id => <button className="rm-link" key={id} onClick={() => openEvidence(id)}>第 {id.split(':').at(-1)} 手证据 ↗</button>)}
+            </div>)}
             <p className="rm-fine-print">玩家记忆保存在本地，重新开始训练也会保留。统计记忆尚不代表经过验证的策略学习。</p>
           </div>}
-          {tab === 'review' && (state?.street === 'complete' ? <div className="rm-review-list">
-            <p className="rm-fine-print">以下为决策时提交的简短理由。胜率抽样假设随机对手范围，不能作为最优策略证明。</p>
-            {decisions.length ? decisions.map(event => <article className="rm-review-item" key={event.id}><div><span className="rm-status-pill">{STREET_NAMES[event.street]}</span><small>{SOURCE_NAMES[event.source ?? 'baseline']}</small></div><h3>{event.message}</h3><p>{event.reason}</p>
-              {event.memoryIds?.length ? <small className="rm-evidence-ref">记忆引用：{event.memoryIds.join(', ')}</small> : <small className="rm-evidence-ref">本次未引用长期记忆</small>}</article>) : <p className="rm-fine-print">本手在 Iris 行动前结束，因此没有 AI 决策记录。</p>}
-          </div> : <div className="rm-empty"><span>◈</span><strong>先打完，再看决策。</strong><p>手牌结束后开放复盘，避免对局中暴露对手策略。</p></div>)}
+          {tab === 'review' && <ReviewPanel api={api} current={state} handId={reviewHandId} onSelect={setReviewHandId} />}
         </div></section>
       </aside>
     </div>
-    <footer className="rm-footer"><span>RIVERMIND <b>01</b> / HEADS-UP FOUNDATION</span><span>长期记忆 · 独立 Agent · 可追溯决策</span></footer>
+    <footer className="rm-footer"><span>RIVERMIND <b>02</b> / HEADS-UP FOUNDATION</span><span>长期记忆 · 独立 Agent · 可追溯决策</span></footer>
   </div>;
 }

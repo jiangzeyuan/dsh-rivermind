@@ -55,12 +55,12 @@ test('invalid, out-of-turn, and stale actions do not mutate state', () => {
 test('both observations hide the other hole cards and all future community cards', () => {
   const table = new PokerTable({deckFactory:()=>deck(['As','Kh','Ad','Kc'])}); table.newHand(0);
   const human = table.viewFor('human'), iris = table.viewFor('iris');
-  assert.deepEqual(human.players[0]!.cards,['As','Ad']);
+  assert.deepEqual(human.players[0]!.cards,['Kh','Kc']);
   assert.deepEqual(human.players[1]!.cards,[null,null]);
   assert.deepEqual(iris.players[0]!.cards,[null,null]);
-  assert.deepEqual(iris.players[1]!.cards,['Kh','Kc']);
+  assert.deepEqual(iris.players[1]!.cards,['As','Ad']);
   assert.deepEqual(iris.board,[]);
-  assert(!JSON.stringify(iris).includes('As'));
+  assert(!JSON.stringify(iris).includes('Kh'));
   act(table,{type:'fold'});
   assert.deepEqual(table.viewFor('human',true).players[1]!.cards,[null,null]);
   assert.deepEqual(table.viewFor('iris',true).players[0]!.cards,[null,null]);

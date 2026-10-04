@@ -3,17 +3,35 @@ export type Street = 'idle' | 'preflop' | 'flop' | 'turn' | 'river' | 'complete'
 export type Card = string;
 export type Action = { type: 'fold' } | { type: 'check' } | { type: 'call' } | { type: 'raise'; amount: number };
 export type DecisionSource = 'human' | 'baseline' | 'dsh' | 'fallback';
+export type Position = 'button' | 'big-blind';
+export type BetSize = 'small' | 'medium' | 'large';
+export interface ActionContext {
+  position: Position;
+  potBefore: number;
+  toCall: number;
+  facingBet: boolean;
+  facingBetSize: BetSize | null;
+  betSize: BetSize | null;
+}
+export interface DecisionTrace {
+  facts?: DecisionFacts;
+  durationMs: number;
+  tools: { name: string; status: 'ok' | 'error'; durationMs: number }[];
+  equity?: { value: number; trials: number; assumption: string };
+  failure?: 'timeout' | 'tool-budget' | 'runtime';
+}
 export interface Decision {
   action: Action;
   reason: string;
   source: DecisionSource;
   memoryIds: string[];
+  trace?: DecisionTrace;
 }
 export interface HandEvent {
   id: number;
   handId: string;
   street: Street;
-  kind: 'started' | 'blind' | 'action' | 'street' | 'finished';
+  kind: 'started' | 'blind' | 'action' | 'street' | 'refund' | 'finished';
   message: string;
   playerId?: PlayerId;
   action?: Action;
@@ -21,6 +39,8 @@ export interface HandEvent {
   source?: DecisionSource;
   reason?: string;
   memoryIds?: string[];
+  context?: ActionContext;
+  trace?: DecisionTrace;
 }
 export interface LegalActions {
   fold: boolean;
@@ -59,6 +79,16 @@ export interface GameView {
   legal: LegalActions;
   events: HandEvent[];
   result: HandResult | null;
+  facts: DecisionFacts;
+}
+export interface DecisionFacts {
+  position: Position;
+  toCall: number;
+  contestablePotAfterCall: number;
+  uncalledReturnAfterCall: number;
+  potOdds: number;
+  effectiveStack: number;
+  stackToPotRatioAfterCall: number;
 }
 export class PokerError extends Error {
   constructor(public readonly code: string, message: string, public readonly status = 409) {

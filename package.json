@@ -1,6 +1,6 @@
 {
   "name": "@rivermind/dsh-plugin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Poker agents with independent decisions and traceable memory, built on DeepSeek Harness.",
@@ -28,10 +28,11 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "npm run build && tsx src/host/dev.ts",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "start:dsh": "node scripts/start-dsh.mjs",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "eval:heads-up": "node --import tsx src/eval/cli.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

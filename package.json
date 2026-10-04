@@ -1,0 +1,42 @@
+{
+  "name": "@rivermind/dsh-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Poker agents with independent decisions and traceable memory, built on DeepSeek Harness.",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": "./dist/host/index.js",
+    "./client": "./dist/client.js"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && tsx src/host/dev.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "start:dsh": "node scripts/start-dsh.mjs"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3"
+  }
+}

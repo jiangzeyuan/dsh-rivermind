@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.data/
+.coverage/
+*.log
+.DS_Store
+.env
+
+# Local credentials and machine configuration
+.env.*
+!.env.example
+!.env.sample
+.npmrc
+.idea/
+*.pem
+*.key
+*.p12
+*.pfx

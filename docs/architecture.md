@@ -18,6 +18,7 @@ DshOpponent 负责真实 DSH 运行时接入。当前是一个对手；后续每
 
 ## DSH 插件接入
 
+- package.json 通过 dsh.bundle 声明 cordis.patch.yml，支持安装到 profile；prepare 负责 Git 源码安装时构建入口。
 - Host 导出 name、inject、apply，按生命周期创建牌桌服务。
 - 客户端通过 dsh.client 与 ./client 导出参与 DSH 模块加载。
 - 浏览器代码构建为 __ModuleLoader__.load 的 CJS factory，复用 DSH 的 React 实例。
@@ -67,6 +68,8 @@ DshOpponent 负责真实 DSH 运行时接入。当前是一个对手；后续每
 每手结束后更新 Iris 对 human 的画像，去重依据为 handId。每条快照有版本 ID 和证据手牌列表。规则陪练只有积累至少十手公开行为后，才会因高弃牌率小幅调整施压阈值；真实 DSH Agent 按工具检索结果决策。
 
 复盘保存该手更新前的记忆快照，便于解释决策时实际可用的证据。牌局中途不更新画像，以保持该手内的记忆版本一致。
+
+常规安装默认写入 Harness home 下的 data/rivermind，避免依赖桌面启动时的工作目录；开发启动覆盖层仍显式使用项目内 .data。
 
 ## 后续里程碑
 

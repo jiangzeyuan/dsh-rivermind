@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { PokerError } from '../core/types.js';
 import { DshOpponent, type DshHostContext } from './dsh.js';
 import { PokerService } from './service.js';
@@ -6,7 +7,14 @@ import { PokerService } from './service.js';
 export const name = 'rivermind';
 export const inject = ['agents', 'tools', 'systemPrompt', 'connection', 'agentDefaultModel'];
 export function apply(ctx: DshHostContext, config: { dataDir?: string } = {}): void {
-  const service = new PokerService(resolve(config.dataDir ?? '.data'), new DshOpponent(ctx));
+  // Installed plugins need a stable writable directory even when Desktop starts
+  // from a different working directory. Explicit development config takes priority.
+  const configuredHome = process.env.DSH_HOME ?? '';
+  const selectedHome = configuredHome.trim() ? configuredHome : resolve(homedir(), '.dsh');
+  const expandedHome = selectedHome === '~' ? homedir()
+    : /^~[\\/]/.test(selectedHome) ? resolve(homedir(), selectedHome.slice(2)) : selectedHome;
+  const dataDir = config.dataDir ?? resolve(expandedHome, 'data', 'rivermind');
+  const service = new PokerService(resolve(dataDir), new DshOpponent(ctx));
   // Exact routes join DSH's authenticated /api transport, including the desktop
   // local carrier, without creating a second generic RPC channel.
   for (const endpoint of ['state', 'deal', 'action', 'mode', 'reset']) {

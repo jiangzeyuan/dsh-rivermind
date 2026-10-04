@@ -9,7 +9,9 @@
   },
   "exports": {
     ".": "./dist/host/index.js",
-    "./client": "./dist/client.js"
+    "./client": "./dist/client.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
   },
   "dsh": {
     "client": {
@@ -18,6 +20,9 @@
         "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-sidebar"
       ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
     }
   },
   "scripts": {
@@ -25,11 +30,8 @@
     "dev": "npm run build && tsx src/host/dev.ts",
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "start:dsh": "node scripts/start-dsh.mjs"
-  },
-  "dependencies": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "start:dsh": "node scripts/start-dsh.mjs",
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
@@ -37,6 +39,20 @@
     "@types/react-dom": "^18.3.0",
     "esbuild": "^0.25.0",
     "tsx": "^4.20.0",
-    "typescript": "~5.9.3"
-  }
+    "typescript": "~5.9.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "poker",
+    "agent",
+    "memory"
+  ],
+  "files": [
+    "dist/",
+    "cordis.patch.yml",
+    "docs/"
+  ]
 }

@@ -16,3 +16,4 @@ dist/
 *.key
 *.p12
 *.pfx
+*.tgz

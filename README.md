@@ -50,14 +50,14 @@ dsh plugin --profile desktop remove @rivermind/dsh-plugin
 
 Web 版把 `desktop` 改为 `web`，然后重启对应 DSH。卸载不清理训练记忆。本地开发依赖若被包管理器清理，运行 `npm ci` 可恢复。
 
-## 从 GitHub 安装（仓库发布后）
+## 从 GitHub 安装
 
-仓库计划名称是 `dsh-rivermind`，包名仍为 `@rivermind/dsh-plugin`；两者不必一致。当前尚未发布，以下命令中的 `YOUR_GITHUB_NAME` 和 `COMMIT_SHA` 都是占位符，不可原样执行。发布后的远程 GitHub 安装仍需单独验收。
+源码仓库为 [jiangzeyuan/dsh-rivermind](https://github.com/jiangzeyuan/dsh-rivermind)，包名为 `@rivermind/dsh-plugin`。以下命令需要仓库的 `main` 分支已推送；远程 GitHub 安装流程仍需单独验收。
 
 ### 推荐先下载源码并本地安装
 
 ```sh
-git clone https://github.com/YOUR_GITHUB_NAME/dsh-rivermind.git
+git clone https://github.com/jiangzeyuan/dsh-rivermind.git
 cd dsh-rivermind
 npm ci
 dsh plugin --profile desktop add .
@@ -68,7 +68,7 @@ dsh plugin --profile desktop add .
 ### 直接从 GitHub 安装
 
 ```sh
-dsh plugin --profile desktop add github:YOUR_GITHUB_NAME/dsh-rivermind#COMMIT_SHA
+dsh plugin --profile desktop add github:jiangzeyuan/dsh-rivermind#main
 ```
 
 仓库包含源码，`prepare` 会构建入口。pnpm 10+ 可能默认拦截 Git 依赖的构建；若出现相关提示，按 DSH/pnpm 提示在对应 profile 的 `pnpm-workspace.yaml` 中合并该包的授权，再重试安装：
@@ -78,7 +78,7 @@ allowBuilds:
   '@rivermind/dsh-plugin': true
 ```
 
-保留文件中已有的设置；若提示使用不同的精确包 key，采用提示里的 key。构建授权表示允许该包执行安装脚本，建议固定到已核对的 commit。流程依据 [DSH 官方插件打包与安装教程](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md)。
+保留文件中已有的设置；若提示使用不同的精确包 key，采用提示里的 key。构建授权表示允许该包执行安装脚本。示例从 `main` 分支安装；需要固定版本时，将 `#main` 替换为 `#` 加已核对的完整提交哈希。流程依据 [DSH 官方插件打包与安装教程](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md) 和 [pnpm Git 仓库来源说明](https://pnpm.io/package-sources#git-repository)。
 
 ### 预构建包
 

@@ -182,3 +182,7 @@ npm run eval:heads-up -- --pairs=50 --seeds=7,17,29,43,71 --trials=100
     docs/           架构与后续开发方向
 
 详细说明见 [文档导航](docs/README.md) 和 [v0.2 技术方案](docs/technical-design-v0.2.md)；[架构速查](docs/architecture.md) 保留为简版。
+
+## 许可证
+
+本项目采用 [MIT License](LICENSE)，版权声明为 `Copyright (c) 2026 zeyuan`。允许使用、修改和商用，分发时须保留版权及许可声明。第三方依赖保留各自的许可证；本地预览包中 React 等组件的声明见 [第三方声明](THIRD_PARTY_NOTICES.md)。

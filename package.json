@@ -1,6 +1,7 @@
 {
   "name": "@rivermind/dsh-plugin",
   "version": "0.2.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "description": "Poker agents with independent decisions and traceable memory, built on DeepSeek Harness.",
@@ -54,6 +55,8 @@
   "files": [
     "dist/",
     "cordis.patch.yml",
-    "docs/"
+    "docs/",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ]
 }

@@ -7,10 +7,10 @@
 | 阶段 | 状态 | 完成凭据 |
 | --- | --- | --- |
 | v0.3 功能与文档 | 已完成并合入 `main` | 42 项测试、浏览器交互检查、完整设计和 CHANGELOG |
-| v0.3.2 补丁 | 功能、文档与本地验证完成 | 57 项测试、实际 DSH 合成运行及 Trace 复制浏览器验收 |
+| v0.3.2 补丁 | 已提交并推送 `main`，对应标签 `v0.3.2` | 提交 [`e3f9339`](https://github.com/jiangzeyuan/dsh-rivermind/commit/e3f9339)；57 项测试、实际 DSH 合成运行及 Trace 浏览器验收 |
 | npm 发布准备 | 已完成 | 57 项测试、`npm run release:check` 和预构建包检查通过 |
-| npm 正式发布 | `0.3.0`、`0.3.1` 已发布；新版本按第 2 节发布并查询确认 | [npm 包](https://www.npmjs.com/package/dsh-rivermind)；registry 已确认版本、简介及新版 README |
-| 从 registry 按包名安装 | `0.3.0`、`0.3.1` 均已通过独立 Web profile 验收 | 实际牌桌加载、完整规则牌局、复盘，以及重启后预算 / 记忆 / 历史保留；未调用模型 |
+| npm 正式发布 | `0.3.0`、`0.3.1`、`0.3.2` 已发布，`latest` 为 `0.3.2` | [npm 包](https://www.npmjs.com/package/dsh-rivermind)；registry 版本 / Git 提交一致，README 与源码一致 |
+| 从 registry 按包名安装 | `0.3.0`、`0.3.1`、`0.3.2` 已通过独立 Web profile 验收；另验证 `0.3.1 → 0.3.2` | 实际牌桌、规则牌局、Trace / 记忆复制、模型说明和重启后数据保留；未调用模型 |
 | 市场收录 | 已准备并推送 fork 分支，PR 尚未提交 | [待提交分支](https://github.com/jiangzeyuan/awesome-dsh-plugin/tree/add-rivermind)；等待创建满一天后提交 |
 
 ### 已完成的 npm 安装验收
@@ -24,6 +24,16 @@
 - 关闭并重启该独立 DSH，确认预算、长期记忆与历史复盘保留。
 
 `0.3.1` 仅更新发布说明与包简介，其 registry 安装检查也已通过；Host、客户端及配置与 `0.3.0` 一致。桌面真实应用及真实模型稳定性不能由上述规则模式验收替代。
+
+### v0.3.2 发布与升级验收
+
+2026-10-06，`dsh-rivermind@0.3.2` 正式发布，registry 确认 `latest = 0.3.2`，`gitHead = e3f93390466beeb2c79ce4a56b676843327aa006`，对应 [源码标签](https://github.com/jiangzeyuan/dsh-rivermind/tree/v0.3.2)。npm README 与该提交的 README 完全一致，包含紧凑 Trace、模型选择与升级操作、原始上下文日志说明。
+
+- 在全新独立 Web profile 中从公开 registry 按精确包名安装，没有使用本地源码或 `.tgz`。
+- 在另一个已安装 `0.3.1` 的独立 profile 中重新执行 `dsh plugin --profile web add dsh-rivermind@0.3.2`，确认同名包更新为 `0.3.2`；不需要先卸载。
+- 两个 profile 均通过真实 DSH 牌桌加载、0.5 BB 步进与双单位金额、预算保存、完整规则牌局、筹码守恒、记忆更新和历史复盘检查。
+- 验证正常规则决策的紧凑 Trace 浮层与真实剪贴板复制、玩家记忆快照、证据手牌的逐条决策资料，以及原生模型问号提示。
+- 两个 profile 均在重启后保持预算、长期记忆与历史可读；没有真实模型或付费 API 调用，不代表远端模型稳定性已验收。
 
 正式包名统一为 `dsh-rivermind`，与仓库名一致。package metadata、bundle、客户端模块 ID 与 lockfile 均使用同一名称；公开 registry 的 `latest` 以 `npm view dsh-rivermind dist-tags.latest` 的查询结果为准。旧本地开发包的迁移步骤见 [README](../README.md#从旧的本地开发包升级)。
 
@@ -106,7 +116,7 @@ dsh web
 
 - 仓库已添加 `dsh-plugin`、`deepseek-harness` topics，已声明 `dsh.bundle`。
 - [fork 的 `add-rivermind` 分支](https://github.com/jiangzeyuan/awesome-dsh-plugin/tree/add-rivermind) 只新增一个 `data/plugins/jiangzeyuan__dsh-rivermind.yml`，官方条目格式及重复项检查通过。
-- [PR 文案](publishing/market-pr.md) 已补入实际 npm 地址和两版安装验收记录。
+- [PR 文案](publishing/market-pr.md) 已补入 npm `0.3.2` 地址、三版安装及升级验收记录。
 - 原仓库创建于 2026-10-05 13:21:39 UTC，满一天的时间为 **2026-10-06 21:21:39（北京时间）**。本次选择在此时间之后提交，PR 尚未创建。
 - 届时打开 [创建收录 PR 的比较页](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/compare/main...jiangzeyuan:awesome-dsh-plugin:add-rivermind?expand=1)，核对只新增上述 YAML，使用已准备文案提交。
 - 提交后仍需目录 CI 通过和维护者审核合并；完成 PR 不等于市场已收录。

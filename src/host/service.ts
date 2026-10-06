@@ -1,4 +1,7 @@
 import { appendFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { PLUGIN_VERSION } from '../core/metadata.js';
+import { decisionDiagnostics, traceError, type DecisionDiagnostics } from '../core/diagnostics.js';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { baselineDecision } from '../core/baseline.js';
@@ -13,7 +16,7 @@ import { AgentSettings } from './settings.js';
 export type Mode = 'baseline' | 'dsh';
 export interface TableSnapshot extends GameView {
   runtime: { mode: Mode; dshAvailable: boolean; busy: boolean; sessionId: string | null; issue: string | null;
-    budget: AgentBudget; thinking: { startedAt: number; budget: AgentBudget } | null };
+    lastFallback?: DecisionDiagnostics | null; budget: AgentBudget; thinking: { startedAt: number; budget: AgentBudget } | null };
   memory: OpponentMemory;
 }
 export class PokerService {
@@ -28,6 +31,7 @@ export class PokerService {
   #mode: Mode;
   #disposed = false;
   #abort?: AbortController;
+  #lastFallback: DecisionDiagnostics | null = null;
   constructor(dataDir: string, private readonly opponent?: Opponent, private readonly baselineDelay = 450,
     options: { agentBudget?: Partial<AgentBudget> } = {}) {
     this.#memory = new PlayerMemory(dataDir);
@@ -38,7 +42,7 @@ export class PokerService {
   }
   snapshot(): TableSnapshot {
     return { ...this.#table.viewFor('human', true), runtime: { mode: this.#mode, dshAvailable: !!this.opponent,
-      busy: this.#busy, sessionId: this.opponent?.sessionId ?? null, issue: this.#issue,
+      lastFallback: structuredClone(this.#lastFallback), busy: this.#busy, sessionId: this.opponent?.sessionId ?? null, issue: this.#issue,
       budget: this.#settings.budget, thinking: this.#thinking ? structuredClone(this.#thinking) : null }, memory: this.#memory.recall() };
   }
   dispatch(endpoint: 'history', payload: unknown): HistoryPage;
@@ -82,6 +86,11 @@ export class PokerService {
   }
   private recordCompletedHand(): void {
     if (!this.#table.complete || this.#recorded.has(this.#table.handId)) return;
+    const completedView = this.#table.viewFor('human', true);
+    if (this.#lastFallback?.hand.handId === completedView.handId) {
+      const event = completedView.events.find(event => event.id === this.#lastFallback!.decision.eventId);
+      if (event) this.#lastFallback = decisionDiagnostics(completedView, event);
+    }
     const publicEvents = this.#table.publicHistory();
     appendFileSync(join(this.#memory.dataDir, 'hands.jsonl'), JSON.stringify({
       handId: this.#table.handId, result: this.#table.viewFor('human').result, events: publicEvents,
@@ -106,6 +115,7 @@ export class PokerService {
         } else {
           const budget = this.#settings.budget;
           this.#thinking = { startedAt: Date.now(), budget };
+          const started = performance.now();
           try {
             decision = await this.opponent!.decide(view, memory,
               AbortSignal.any([controller.signal, AbortSignal.timeout(budget.timeoutSeconds * 1000)]), budget);
@@ -115,19 +125,32 @@ export class PokerService {
             const runtimeError = error instanceof DecisionFailure ? error.trace.runtimeError : undefined;
             const description = failure === 'timeout' ? 'Iris 超过 ' + budget.timeoutSeconds + ' 秒思考时限'
               : failure === 'tool-budget' ? 'Iris 超过 ' + budget.maxToolCalls + ' 次工具调用上限'
+              : runtimeError?.code === 'MAX_TOKENS' ? 'Iris 的模型输出额度耗尽，尚未提交动作'
+              : runtimeError?.code === 'TIMEOUT' ? 'DSH 模型请求超时'
               : runtimeError?.kind === 'input-rejected' ? 'DSH 拒绝了决策输入'
               : runtimeError?.kind === 'agent-error' ? 'DSH Agent 运行失败' + (runtimeError.code ? '（' + runtimeError.code + '）' : '')
               : runtimeError?.kind === 'no-action' ? 'Iris 结束了本轮但未提交动作' : 'DSH 未完成合法行动';
             this.#issue = description + '，已执行安全兜底。' + (failure === 'runtime'
-              ? '请检查 DSH 模型配置或重启插件；也可在手牌结束后切换为规则陪练。'
+              ? runtimeError?.code === 'MAX_TOKENS' ? '请检查 DSH 模型的输出上限或推理强度；也可在手牌结束后切换为规则陪练。'
+                : runtimeError?.code === 'TIMEOUT' ? '请检查 DSH 的模型连接与请求超时配置；Iris 的行动时限不能延长模型服务自身的超时。'
+                : '请检查 DSH 模型配置或重启插件；也可在手牌结束后切换为规则陪练。'
               : '可在手牌结束后调整 Iris 预算或切换为规则陪练。');
             decision = { action: view.legal.check ? { type: 'check' } : { type: 'fold' },
               source: 'fallback', reason: '模型调用未完成；无需新增筹码时过牌，否则弃牌。', memoryIds: [],
-              trace: error instanceof DecisionFailure ? error.trace : { durationMs: 0, tools: [], failure: 'runtime', budget } };
+              trace: error instanceof DecisionFailure ? error.trace : { decisionId: randomUUID(),
+                startedAt: new Date(this.#thinking.startedAt).toISOString(), pluginVersion: PLUGIN_VERSION,
+                sessionId: this.opponent?.sessionId, durationMs: performance.now() - started, tools: [], failure: 'runtime', budget,
+                runtimeError: { kind: 'agent-error', ...traceError(error) } } };
           }
         }
         if (controller.signal.aborted || this.#disposed) return;
         this.#table.apply('iris', decision, view.revision);
+        if (decision.source === 'fallback') {
+          const event = { id: view.events.length + 1, handId: view.handId, street: view.street,
+            kind: 'action' as const, playerId: 'iris' as const, message: '', source: decision.source,
+            action: decision.action, trace: decision.trace };
+          this.#lastFallback = decisionDiagnostics(view, event);
+        }
         this.recordCompletedHand();
       }
     } catch {

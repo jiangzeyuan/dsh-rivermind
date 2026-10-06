@@ -3,6 +3,10 @@ import type { Action, Card as CardValue } from '../core/types.js';
 import type { TableSnapshot } from '../host/service.js';
 import type { PokerApi } from './api.js';
 import { ReviewPanel } from './ReviewPanel.js';
+import { TraceExport } from './TraceExport.js';
+import { ModelHelp } from './ModelHelp.js';
+import { MemoryEvidence } from './MemoryEvidence.js';
+import { memoryDiagnostics } from '../core/diagnostics.js';
 import { BetControls } from './BetControls.js';
 import { IrisSettings, ThinkingStatus } from './IrisSettings.js';
 
@@ -76,7 +80,9 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
       </button>
     </section>
     {error && <div className="rm-notice rm-error" role="alert">{error}</div>}
-    {state?.runtime.issue && <div className="rm-notice" role="status">{state.runtime.issue}</div>}
+    {state?.runtime.issue && <div className="rm-notice rm-notice-diagnostic" role="status"><p>{state.runtime.issue}</p>
+      {state.runtime.lastFallback?.hand.handId === state.handId && <TraceExport report={state.runtime.lastFallback} />}
+    </div>}
     <div className="rm-layout">
       <main className="rm-play-area">
         <div className="rm-table-toolbar">
@@ -119,7 +125,7 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
       <aside className="rm-sidebar">
         <section className="rm-opponent-card"><div className="rm-eyebrow">YOUR OPPONENT</div><div className="rm-opponent-title"><span className="rm-avatar rm-iris-avatar">I</span><div><h2>Iris</h2><span>耐心观察，凭证据行动</span></div><span className="rm-memory-badge">有记忆</span></div>
           <p>稳健进攻型陪练。统计公开行为，在有样本支持时调整策略。</p>
-          <label className="rm-mode-label" htmlFor="rm-mode">对手运行模式</label>
+          <div className="rm-mode-heading"><label className="rm-mode-label" htmlFor="rm-mode">对手运行模式</label><ModelHelp /></div>
           <select id="rm-mode" value={state?.runtime.mode ?? 'baseline'} disabled={!state || !betweenHands || sending || state.runtime.busy}
             onChange={event => command('mode', { mode: event.target.value })}>
             <option value="baseline">规则陪练 · 不调用模型</option>
@@ -139,14 +145,14 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
             <div><small>{STREET_NAMES[event.street]}{event.source ? ' · ' + SOURCE_NAMES[event.source] : ''}</small><p>{event.message}</p></div>
           </li>)}</ol> : <div className="rm-empty"><span>♠</span><strong>第一手故事，还没开始。</strong><p>发牌后，公开行动会依次记录在这里。</p></div>)}
           {tab === 'memory' && <div className="rm-memory-panel"><div className="rm-memory-metrics"><div><strong>{state?.memory.handsObserved ?? 0}</strong><span>观察手数</span></div><div><strong>{state?.memory.handsFolded ?? 0}</strong><span>对手弃牌</span></div><div><strong>{state?.memory.aggressiveHands ?? 0}</strong><span>对手进攻</span></div></div>
-            <div className="rm-memory-entry"><span className="rm-entry-label">IRIS 对你的公开行为记忆</span><p>{state?.memory.summary ?? '尚无样本。'}</p>
+            <div className="rm-memory-entry"><div className="rm-entry-heading"><span className="rm-entry-label">IRIS 对你的公开行为记忆</span>{state && <TraceExport label="记忆快照" report={memoryDiagnostics(state.memory)} />}</div><p>{state?.memory.summary ?? '尚无样本。'}</p>
               <small>仅使用公开行动；完成一手牌后更新。</small></div>
-            <div className="rm-memory-entry"><span className="rm-entry-label">证据</span>{state?.memory.evidenceHandIds.length ? state.memory.evidenceHandIds.map(id => <button className="rm-link" key={id} onClick={() => openEvidence(id)}>{id.slice(0, 8) + '… · 第 ' + id.split(':').at(-1) + ' 手 ↗'}</button>) : <p>暂无历史手牌。样本累积后再判断风格。</p>}</div>
+            <div className="rm-memory-entry"><span className="rm-entry-label">证据</span>{state?.memory.evidenceHandIds.length ? state.memory.evidenceHandIds.map(id => <MemoryEvidence api={api} key={id} handId={id} onSelect={openEvidence} />) : <p>暂无历史手牌。样本累积后再判断风格。</p>}</div>
             {state?.memory.conditions.map(condition => <div className="rm-memory-entry" key={condition.key}>
-              <span className="rm-entry-label">{STREET_NAMES[condition.street]} · {condition.position === 'button' ? '庄位' : '大盲位'} · {{small:'小',medium:'中',large:'大'}[condition.betSize]}尺度下注</span>
+              <div className="rm-entry-heading"><span className="rm-entry-label">{STREET_NAMES[condition.street]} · {condition.position === 'button' ? '庄位' : '大盲位'} · {{small:'小',medium:'中',large:'大'}[condition.betSize]}尺度下注</span><TraceExport label="条件记忆" report={memoryDiagnostics(state.memory, condition)} /></div>
               <p>面对主动下注：弃牌 {condition.folds} / {condition.opportunities} 次（{Math.round(condition.foldRate * 100)}%）</p>
               <small>约 95% 区间 {Math.round(condition.foldRateInterval[0]*100)}%～{Math.round(condition.foldRateInterval[1]*100)}% · {condition.usable ? '达到最低样本量' : '样本不足，暂不调整策略'}</small>
-              {condition.evidenceHandIds.map(id => <button className="rm-link" key={id} onClick={() => openEvidence(id)}>第 {id.split(':').at(-1)} 手证据 ↗</button>)}
+              {condition.evidenceHandIds.map(id => <MemoryEvidence api={api} key={id} handId={id} onSelect={openEvidence} compact />)}
             </div>)}
             <p className="rm-fine-print">玩家记忆保存在本地，重新开始训练也会保留。统计记忆尚不代表经过验证的策略学习。</p>
           </div>}

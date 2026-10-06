@@ -15,7 +15,13 @@ export interface ActionContext {
   facingBetSize: BetSize | null;
   betSize: BetSize | null;
 }
+export interface TraceModel { provider: string; model: string; reasoningEffort?: string; maxTokens?: number }
 export interface DecisionTrace {
+  decisionId?: string;
+  startedAt?: string;
+  sessionId?: string;
+  pluginVersion?: string;
+  model?: { selected?: TraceModel; resolved?: TraceModel };
   budget?: AgentBudget;
   facts?: DecisionFacts;
   durationMs: number;
@@ -23,7 +29,8 @@ export interface DecisionTrace {
   memory?: { id: string; handsObserved: number; provided: boolean; retrieved: boolean; cited: boolean };
   equity?: { value: number; trials: number; assumption: string };
   failure?: 'timeout' | 'tool-budget' | 'runtime';
-  runtimeError?: { kind: 'input-rejected' | 'agent-error' | 'no-action'; code?: string };
+  runtimeError?: { kind: 'input-rejected' | 'agent-error' | 'no-action'; code?: string; status?: number;
+    requestId?: string; providerRetryAfterMs?: number; causes?: { code?: string; status?: number }[] };
 }
 export interface Decision {
   action: Action;

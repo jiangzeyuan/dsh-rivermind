@@ -2,7 +2,7 @@
 
 基于 DeepSeek Harness 的德扑 Agent 项目：独立玩家、受限工具、可追溯决策，以及按玩家保存的长期记忆。
 
-当前为 v0.3（最新 npm 版本 `0.3.1`）：**你与 Iris 的双人无限注德扑训练桌**。支持同栏展示的 BB / 底池比例快捷下注、BB / 筹码双单位展示、小数 BB 输入、默认收起且可保存的 Iris 决策预算，以及条件画像、记忆引用状态、历史复盘和可重复的规则评估。
+当前为 v0.3.2：**你与 Iris 的双人无限注德扑训练桌**。支持同栏展示的 BB / 底池比例快捷下注、BB / 筹码双单位展示、小数 BB 输入、默认收起且可保存的 Iris 决策预算，以及条件画像、记忆引用状态、历史复盘、紧凑的 Trace 复制入口与可重复的规则评估。模型与行动超时分别诊断，复盘记录实际请求模型。
 
 ![v0.1 DSH 牌桌示例，新版增加条件画像和历史复盘](https://raw.githubusercontent.com/jiangzeyuan/dsh-rivermind/main/docs/images/rivermind-dsh.jpg)
 
@@ -10,7 +10,7 @@
 
 ## 安装到已有的 DeepSeek Harness
 
-**推荐按 npm 包名安装**：[dsh-rivermind@0.3.1](https://www.npmjs.com/package/dsh-rivermind/v/0.3.1) 已发布，携带 Host、客户端与配置的构建产物。使用者无需下载源码或运行 `npm ci`。
+**推荐按 npm 包名安装**：[dsh-rivermind](https://www.npmjs.com/package/dsh-rivermind) 已发布，携带 Host、客户端与配置的构建产物。使用者无需下载源码或运行 `npm ci`。以下命令安装 npm 的最新稳定版本；需要固定版本时，在包名后追加 `@版本号`。
 
 需要 Node.js 22+ 和已经安装的 DeepSeek Harness。当前对照 DSH **0.2.0-rc.2** 开发；官方桌面安装包提供的 `dsh` 命令自带 pnpm，其他 CLI 安装方式还需确保 pnpm 可用。使用 AI 模式前，先在 DSH 中配置模型；规则陪练不调用模型。
 
@@ -20,7 +20,7 @@
 2. 在终端执行：
 
 ```sh
-dsh plugin --profile desktop add dsh-rivermind@0.3.1
+dsh plugin --profile desktop add dsh-rivermind
 ```
 
 3. 重新打开 DeepSeek Harness，在左侧选择 **RiverMind 德扑训练场**，点击 **开始第一手**。以后正常打开 DSH 就会载入，不需要运行 `npm run start:dsh`。
@@ -28,15 +28,33 @@ dsh plugin --profile desktop add dsh-rivermind@0.3.1
 ### npm 安装：Web 版
 
 ```sh
-dsh plugin --profile web add dsh-rivermind@0.3.1
+dsh plugin --profile web add dsh-rivermind
 dsh web
 ```
 
 按启动日志给出的认证地址打开页面，再选择 **RiverMind 德扑训练场**。如果 Web 版已运行，安装后重启该进程。`desktop` 和 `web` 是两个独立 profile，需要安装到实际使用的那个。
 
-npm `0.3.0` 和 `0.3.1` 均已在全新 Web profile 验证按包名安装、实际牌桌加载、完整规则牌局和重启后的预算 / 记忆 / 历史保留；桌面安装后的界面仍需在实际应用中确认。
+按包名安装、实际牌桌加载、规则牌局和重启后数据保留的验收记录见 [发布指南](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/publishing.md)。规则模式验收不代表真实模型稳定性已验证。
 
 插件使用 DSH 中已配置的模型，不另行保存 API Key。模型调用使用你的 DSH 账号或 API 配额。单次行动默认预算为 60 秒、最多 10 次工具调用，可在牌桌中调整并保存；超时或提交失败会明确标记安全兜底。发布与安装验收记录见 [发布指南](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/publishing.md)。
+
+### 升级已有 npm 安装
+
+完全退出 DSH 后，重新安装指定版本即可更新同名包，无须先卸载：
+
+```sh
+dsh plugin --profile desktop add dsh-rivermind@0.3.2
+```
+
+Web 版将 `desktop` 改为 `web`，停止原服务后更新并重启。升级保留原数据目录中的记忆、预算和历史；旧记录缺失的模型信息与 Trace 不会补回。源码链接安装的用户更新源码、运行 `npm run build`，再重启 DSH。
+
+### Iris 使用哪个模型，如何切换
+
+Iris 第一次行动时，通过 DSH 的 `agentDefaultModel.currentSelection()` 读取当前默认的提供方、模型和可选推理等级。插件没有固定选择 Pro 或 Flash；后续手牌复用同一个 Agent，因此改变 DSH 默认值不会自动改变已创建的 Iris。
+
+桌面版用户可在 DSH 普通会话输入框的模型选择器中选定 Pro、Flash 或其他已配置模型，并等待选择完成；DSH 会同时保存新 Agent 的默认选择。随后完全退出并重新打开 DSH，再进入 RiverMind 开始训练，新 Iris 才会读取新选择。Web 用户在选定模型后重启 DSH 服务。仅点击牌桌的“重新开始训练”不会重新选择模型，文件中的长期统计记忆则会在重启后保留。
+
+新决策的复盘与兜底诊断记录创建时的模型选择，并从 DSH 请求头记录实际解析的模型与推理等级；复用会话时关联沿用的请求头。创建或输入阶段失败，尚未捕获请求模型时只显示创建时选择；旧记录没有这些字段时明确标为未记录。普通聊天当前显示的模型也不能代表已经创建的 Iris；60 秒行动预算独立于模型选择。运行模式及复盘模型旁的 **?** 可悬停查看选择与切换说明，点击也可查看。DSH 的默认模型机制见 [官方说明](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/agent-default-model/README.zh.md)。
 
 ### 从旧的本地开发包升级
 
@@ -44,7 +62,7 @@ npm `0.3.0` 和 `0.3.1` 均已在全新 Web profile 验证按包名安装、实�
 
 ```sh
 dsh plugin --profile desktop remove @rivermind/dsh-plugin
-dsh plugin --profile desktop add dsh-rivermind@0.3.1
+dsh plugin --profile desktop add dsh-rivermind
 ```
 
 Web 用户将 `desktop` 改为 `web`。升级不清理 `DSH_HOME/data/rivermind` 的长期记忆、预算和已结束牌局；通过 `npm run start:dsh` 产生的项目内 `.data/` 需要按下文的 [数据说明](#数据) 迁移。
@@ -126,11 +144,29 @@ RIVERMIND_DSH_PORT=3081 npm run start:dsh
 
 金额输入可切换 BB / 筹码。例如盲注 10 / 20 时，输入 `2.35 BB` 等于 47 筹码；最小筹码单位仍为 1。滑动选择保留在折叠区域。
 
-侧栏 **Iris 决策预算** 默认收起，摘要保留当前上限；展开后可在两手牌之间选择快速（25 秒 / 6 次）、标准（60 秒 / 10 次）、深入（120 秒 / 16 次）或自定义；点击 **保存 Iris 预算** 后生效，重启后保留。思考时限范围为 5～300 秒，工具上限为 1～32 次，包含最终的 `submit_action`。规则陪练不使用这些模型预算。
+侧栏 **Iris 决策预算** 默认收起，摘要保留当前上限；展开后可在两手牌之间选择快速（25 秒 / 6 次）、标准（60 秒 / 10 次）、深入（120 秒 / 16 次）或自定义；点击 **保存 Iris 预算** 后生效，重启后保留。思考时限范围为 5～300 秒，工具上限为 1～32 次，包含最终的 `submit_action`。规则陪练不使用这些模型预算。60 秒是整次行动的最长等待时间；模型服务自身的请求超时或输出额度耗尽可能更早结束。插件不再额外将单次响应固定为 2048 tokens，输出额度由 DSH 所配置的模型决定，推理内容也可能计入该额度。
 
 每次 DSH 行动主动提供最新公开统计摘要，条件详情仍按需检索。复盘区分摘要提供、详情读取与显式引用；没有引用不能证明长期记忆完全没影响，模型对范围或风格的说明也不能单独视为长期画像。
 
+若模型提前结束，复盘将显示“模型输出额度耗尽”（`MAX_TOKENS`）、“模型请求超时”（`TIMEOUT`）或其他运行原因；只有 Iris 自身行动截止到期才显示“思考超时”。增大 Iris 时限不能延长模型服务自身的超时。
+
 历史复盘中，Iris 的底牌在摊牌结算时展示；弃牌结束的牌局显示“未亮牌”，记录不包含其未公开底牌。思考时显示已经等待的时间；结束复盘显示该次使用的预算、工具尝试及失败原因。更多细节见 [当前技术设计](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/technical-design.md)。
+
+### 查看与复制 Trace
+
+Trace 入口为卡片标题右侧的小文档图标，默认不占正文空间。点击后打开资料浮层，选择 **复制 JSON**；自动复制不可用或权限被拒绝时，会选中只读文本，按 Ctrl/Cmd+C 即可手动复制。关闭浮层或按 Esc 可返回牌桌，不会自动上传资料。
+
+**历史复盘**中，正常 AI 决策、规则陪练和安全兜底均可查看已保存的 Trace；该手决策前的记忆快照也可复制。**玩家记忆**中的公开统计摘要、每组条件统计各有复制入口；证据手牌旁的图标会按需读取该手全部 Iris 决策 Trace。记忆统计本身不是模型调用 Trace，浮层和 JSON 会明确区分。若证据已超出最近复盘窗口，界面会说明无法读取，原始日志仍保存在本地。安全兜底的顶部提示也保留小图标，即时资料在手牌结束前只开放运行诊断。
+
+JSON 使用 `rivermind.decision-diagnostics/v1` 格式，包含手牌和决策编号、决策开始时间、插件版本、创建时模型与实际解析模型、耗时、预算、工具调用顺序和耗时、失败类别，以及可用的错误码、HTTP 状态、请求编号、服务重试等待与底层原因码。模型字段缺失时不会用当前默认值补写。手牌进行中只导出运行诊断；结束后的复盘可以包含已保存的完整业务 Trace，包括金额事实、抽样结果和记忆提供 / 读取 / 引用状态。
+
+证据手牌报告使用 `rivermind.hand-diagnostics/v1`，逐条保留 Trace 缺失状态；记忆快照使用 `rivermind.memory-diagnostics/v1`，包含公开计数、条件样本、区间与证据编号，历史快照缺失的条件字段不会补造。
+
+导出不含任何底牌、API Key、认证头、完整提示词、模型思考文本、工具原始参数或原始异常文本 / 堆栈；它是 RiverMind 的结构化诊断记录，不是 DSH 全量原始会话日志。旧记录未保存的 Trace 与模型信息无法补回，JSON 的 `coverage` 会说明缺失。DSH 实际版本未自动采集，反馈问题时请同时注明桌面版版本号。
+
+### 查看真实 LLM 上下文与工具详情
+
+诊断 Trace 记录模型和工具摘要；完整上下文事件、工具参数与结果保存在 DSH 的原始会话日志。用 Trace 的 `sessionId` 定位默认目录 `~/.dsh/sessions/_no-cwd/<sessionId>/session.v4.jsonl.zstd`；设置 `DSH_HOME` 时改用该目录下的 `sessions`。日志按会话保存，一个会话可包含多手牌、多次模型请求，需用输入中的 `handId` / `revision` 定位行动，并回放事件重建当时的上下文。详情见 [诊断与原始会话日志](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/diagnostics.md)。原始日志含 Iris 私牌，适合结束牌局后本地调试；对外反馈使用诊断 Trace。
 
 ## 当前能力
 
@@ -143,7 +179,7 @@ RIVERMIND_DSH_PORT=3081 npm run start:dsh
 - 长期保存公开对手统计与条件画像：按下注轮、位置、下注尺度记录实际回应次数，附样本量、近似区间及证据编号；兼容旧记忆文件。
 - 统一记录未跟注退款，提供可争夺底池赔率、有效筹码和跟注后 SPR。
 - 固定种子配对发牌，比较无记忆、累计统计和条件画像的规则策略收益；评估不调用模型。
-- 明确区分真实 DSH 决策、规则陪练决策和安全兜底。
+- 明确区分真实 DSH 决策、规则陪练决策和安全兜底；支持复制决策 Trace、公开记忆快照与证据手牌资料，并记录模型与结构化失败原因。
 
 规则陪练的牌力估算使用未知牌抽样，并假设随机对手范围，不能视为 GTO 求解器。当前未实现六人桌、CFR/RL、自主策略升级、全量历史索引或中断牌局恢复。
 

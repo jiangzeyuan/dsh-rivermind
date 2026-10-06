@@ -1,6 +1,6 @@
 {
   "name": "dsh-rivermind",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "license": "MIT",
   "type": "module",
   "description": "Heads-up Texas Hold'em training for DeepSeek Harness, with an AI opponent, persistent public-action memory, and decision reviews.",

@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { traceError, traceModel } from '../core/diagnostics.js';
+import { PLUGIN_VERSION } from '../core/metadata.js';
 import { estimateEquity } from '../core/cards.js';
 import { PokerError, type Action, type Card, type Decision, type DecisionTrace, type GameView } from '../core/types.js';
 import type { OpponentMemory } from './memory.js';
@@ -15,6 +17,7 @@ interface ToolDefinition {
 }
 interface ScopedContext {
   on(name: 'agent/error', listener: (event: { error: unknown }) => void): unknown;
+  on(name: 'session/event', listener: (session: { id: string }, event: { type: string; data?: { reason?: { kind?: string }; header?: { config?: unknown } } }) => void): unknown;
   tools: { register(tool: ToolDefinition): unknown; restrict(filter: { allow: string[] }): unknown; presentAs(mode: 'native'): unknown };
   systemPrompt: { section(section: { name: string; order: number; text: string; complete: boolean; interpolate: boolean }): unknown; suppressRuntimeContext(): unknown };
 }
@@ -73,26 +76,52 @@ export class DshOpponent implements Opponent {
   #pending?: Pending;
   #creating?: Promise<AgentHandle>;
   #disposed = false;
+  #selectedModel?: DecisionTrace['model'];
+  #selectedOptions?: Record<string, unknown>;
+  #resolvedModel?: NonNullable<DecisionTrace['model']>['resolved'];
   constructor(private readonly ctx: DshHostContext) {}
   private async handle(signal: AbortSignal): Promise<AgentHandle> {
     // A blank, plugin-owned table Session gives Iris real parent lineage without
     // adding a chat row or making an LLM request. DSH owns its fiber cleanup.
     this.#tableSession ??= this.ctx.sessions.create('rivermind-table-' + randomUUID());
+    if (!this.#creating) {
+      this.#selectedOptions = { ...this.ctx.agentDefaultModel.currentSelection() };
+      this.#selectedModel = { selected: traceModel(this.#selectedOptions) };
+    }
     this.#creating ??= this.ctx.agents.create({
       sessionId: this.sessionId, signal,
       // DSH hides subagent Sessions from ordinary chat navigation. Keep cwd
       // absent: poker observations contain Iris hole cards and are private.
       meta: { origin: 'subagent', parentSession: this.#tableSession.id },
-      agentOptions: { ...this.ctx.agentDefaultModel.currentSelection(), maxTokens: 2048 },
+      // A fixed small response cap also caps reasoning tokens. Let the configured
+      // model own that limit; our per-decision deadline still bounds wall time.
+      agentOptions: { ...this.#selectedOptions },
       setup: scoped => {
         scoped.on('agent/error', ({ error }) => {
           const pending = this.#pending;
           if (!pending || pending.signal.aborted) return;
           // Record only structured diagnostics; provider error text can contain private data.
-          const code = (error as { code?: unknown } | null)?.code;
-          pending.trace.runtimeError = { kind: 'agent-error',
-            ...(typeof code === 'string' && /^[A-Z][A-Z0-9_-]{0,39}$/.test(code) ? { code } : {}) };
+          pending.trace.runtimeError = { kind: 'agent-error', ...traceError(error) };
           pending.reject(new Error('DSH agent failed.'));
+        });
+        scoped.on('session/event', (session, event) => {
+          const pending = this.#pending;
+          if (!pending || pending.signal.aborted || session.id !== this.sessionId) return;
+          if (event.type === 'request/header') {
+            const resolved = traceModel(event.data?.header?.config);
+            if (resolved) {
+              this.#resolvedModel = resolved;
+              pending.trace.model = { ...pending.trace.model, resolved };
+            }
+          } else if ((event.type === 'assistant/message' || event.type === 'assistant/attempt') && this.#resolvedModel) {
+            // DSH omits unchanged request headers on later inputs. A settled
+            // request reuses that header; do not label a rejected input as used.
+            pending.trace.model = { ...pending.trace.model, resolved: { ...this.#resolvedModel } };
+          }
+          // Read only structured metadata, never model text or reasoning.
+          if (event.type === 'turn/end' && event.data?.reason?.kind === 'max-tokens') {
+            pending.trace.runtimeError = { kind: 'no-action', code: 'MAX_TOKENS' };
+          }
         });
         scoped.tools.restrict({ allow: [] }); // Zero global tools; only these local capabilities remain.
         scoped.tools.presentAs('native'); // Avoid inheriting the coding-agent PTC executor.
@@ -199,11 +228,13 @@ export class DshOpponent implements Opponent {
     if (this.#disposed) throw new Error('Poker opponent disposed.');
     const started = performance.now();
     const budget = validateAgentBudget(requestedBudget);
-    const trace: DecisionTrace = { budget, facts: structuredClone(view.facts), durationMs: 0, tools: [],
+    const trace: DecisionTrace = { decisionId: randomUUID(), startedAt: new Date().toISOString(),
+      sessionId: this.sessionId, pluginVersion: PLUGIN_VERSION, budget, facts: structuredClone(view.facts), durationMs: 0, tools: [],
       memory: { id: memory.id, handsObserved: memory.handsObserved, provided: false, retrieved: false, cited: false } };
     try {
       signal.throwIfAborted();
       const handle = await withSignal(this.handle(signal), signal);
+      trace.model = structuredClone(this.#selectedModel);
       // Idle alone is not a decision correlation; the bound submit tool resolves the exact request.
       await withSignal(handle.agent.whenIdle(), signal);
       signal.throwIfAborted();
@@ -230,7 +261,7 @@ export class DshOpponent implements Opponent {
           // Capture this request so a late idle callback cannot reject a later turn.
           void handle.agent.whenIdle().then(() => {
             if (this.#pending !== pending) return;
-            trace.runtimeError = { kind: 'no-action' };
+            trace.runtimeError ??= { kind: 'no-action' };
             pending.reject(new Error('DSH turn ended without submitting an action.'));
           }, () => {
             if (this.#pending !== pending) return;
@@ -240,7 +271,7 @@ export class DshOpponent implements Opponent {
         } catch (error) {
           if (this.#pending === pending && trace.tools.length === 0) {
             trace.memory!.provided = false;
-            trace.runtimeError = { kind: 'input-rejected' };
+            trace.runtimeError = { kind: 'input-rejected', ...traceError(error) };
           }
           this.#pending?.reject(error instanceof Error ? error : new Error('Agent input failed.'));
         }
@@ -248,6 +279,8 @@ export class DshOpponent implements Opponent {
       trace.durationMs = performance.now() - started;
       return decision;
     } catch (error) {
+      trace.model ??= structuredClone(this.#selectedModel);
+      trace.runtimeError ??= signal.aborted || (error instanceof Error && error.message === 'Poker tool budget exhausted.') ? undefined : { kind: 'agent-error', ...traceError(error) };
       if (this.#handle) this.cancel(this.#handle, new Error('Poker decision failed.'));
       trace.durationMs = performance.now() - started;
       trace.failure = signal.aborted && signal.reason?.name === 'TimeoutError' ? 'timeout'

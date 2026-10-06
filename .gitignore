@@ -17,3 +17,6 @@ dist/
 *.p12
 *.pfx
 *.tgz
+
+# Personal notes and historical documents kept only on this machine
+/.local-notes/

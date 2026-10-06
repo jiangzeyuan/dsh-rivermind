@@ -23,6 +23,7 @@ export interface DecisionTrace {
   memory?: { id: string; handsObserved: number; provided: boolean; retrieved: boolean; cited: boolean };
   equity?: { value: number; trials: number; assumption: string };
   failure?: 'timeout' | 'tool-budget' | 'runtime';
+  runtimeError?: { kind: 'input-rejected' | 'agent-error' | 'no-action'; code?: string };
 }
 export interface Decision {
   action: Action;

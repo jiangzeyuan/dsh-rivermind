@@ -118,7 +118,7 @@ test('decision trace is only available in the human finished-hand review',()=>{
 });
 function mockDsh(mode:'never-create'|'budget'|'valid'){
   const tools=new Map<string,any>();let cancelled=0;
-  const context={agentDefaultModel:{currentSelection:()=>({})},agents:{create:async(options:any)=>{
+  const context={sessions:{create:(id:string)=>({id})},agentDefaultModel:{currentSelection:()=>({})},agents:{create:async(options:any)=>{
     if(mode==='never-create')return await new Promise(()=>{});
     const agent={id:options.sessionId,whenIdle:async()=>{},cancel:()=>{cancelled++;},followup:()=>{
       if(mode==='budget'){for(let i=0;i<7;i++)tools.get('get_observation').execute({}, {signal:new AbortController().signal,concludeTurn(){}});}
@@ -127,7 +127,7 @@ function mockDsh(mode:'never-create'|'budget'|'valid'){
         tools.get('submit_action').execute({handId:view.handId,revision:view.revision,type:'check',rationale:'过牌'}, {signal:new AbortController().signal,concludeTurn(){}});
       }
     }};
-    options.setup({tools:{restrict(){},presentAs(){},register(t:any){tools.set(t.name,t);}},systemPrompt:{section(){},suppressRuntimeContext(){}}},agent);
+    options.setup({on() {}, tools:{restrict(){},presentAs(){},register(t:any){tools.set(t.name,t);}},systemPrompt:{section(){},suppressRuntimeContext(){}}},agent);
     return {agent,dispose:async()=>{}};
   }}} as unknown as DshHostContext;
   return {context,tools,cancelled:()=>cancelled};

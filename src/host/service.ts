@@ -112,9 +112,15 @@ export class PokerService {
           } catch (error) {
             if (controller.signal.aborted) return;
             const failure = error instanceof DecisionFailure ? error.trace.failure : 'runtime';
-            this.#issue = (failure === 'timeout' ? 'Iris 超过 ' + budget.timeoutSeconds + ' 秒思考时限'
-              : failure === 'tool-budget' ? 'Iris 超过 ' + budget.maxToolCalls + ' 次工具调用上限' : 'DSH 未完成合法行动') +
-              '，已执行安全兜底。可在手牌结束后调整 Iris 预算或切换为规则陪练。';
+            const runtimeError = error instanceof DecisionFailure ? error.trace.runtimeError : undefined;
+            const description = failure === 'timeout' ? 'Iris 超过 ' + budget.timeoutSeconds + ' 秒思考时限'
+              : failure === 'tool-budget' ? 'Iris 超过 ' + budget.maxToolCalls + ' 次工具调用上限'
+              : runtimeError?.kind === 'input-rejected' ? 'DSH 拒绝了决策输入'
+              : runtimeError?.kind === 'agent-error' ? 'DSH Agent 运行失败' + (runtimeError.code ? '（' + runtimeError.code + '）' : '')
+              : runtimeError?.kind === 'no-action' ? 'Iris 结束了本轮但未提交动作' : 'DSH 未完成合法行动';
+            this.#issue = description + '，已执行安全兜底。' + (failure === 'runtime'
+              ? '请检查 DSH 模型配置或重启插件；也可在手牌结束后切换为规则陪练。'
+              : '可在手牌结束后调整 Iris 预算或切换为规则陪练。');
             decision = { action: view.legal.check ? { type: 'check' } : { type: 'fold' },
               source: 'fallback', reason: '模型调用未完成；无需新增筹码时过牌，否则弃牌。', memoryIds: [],
               trace: error instanceof DecisionFailure ? error.trace : { durationMs: 0, tools: [], failure: 'runtime', budget } };

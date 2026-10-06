@@ -14,6 +14,7 @@ interface ToolDefinition {
   execute(args: Record<string, unknown>, exec: ToolExecution): unknown;
 }
 interface ScopedContext {
+  on(name: 'agent/error', listener: (event: { error: unknown }) => void): unknown;
   tools: { register(tool: ToolDefinition): unknown; restrict(filter: { allow: string[] }): unknown; presentAs(mode: 'native'): unknown };
   systemPrompt: { section(section: { name: string; order: number; text: string; complete: boolean; interpolate: boolean }): unknown; suppressRuntimeContext(): unknown };
 }
@@ -22,7 +23,8 @@ export interface AgentHandle {
   dispose(): Promise<void>;
 }
 export interface DshHostContext {
-  agents: { create(options: { sessionId: string; signal?: AbortSignal; agentOptions: Record<string, unknown>;
+  sessions: { create(id: string): { id: string } };
+  agents: { create(options: { sessionId: string; signal?: AbortSignal; meta: { origin: 'subagent'; parentSession: string }; agentOptions: Record<string, unknown>;
     setup(ctx: ScopedContext, agent: AgentHandle['agent']): void }): Promise<AgentHandle> };
   agentDefaultModel: { currentSelection(): Record<string, unknown> };
   connection: { fetch: { register(route: { path: string; methods: string[]; requestBody: 'buffered'; fetch(request: Request): Promise<Response> }): unknown } };
@@ -66,16 +68,32 @@ export function validateSubmittedAction(view: GameView, args: Record<string, unk
 }
 export class DshOpponent implements Opponent {
   readonly sessionId = 'rivermind-iris-' + randomUUID();
+  #tableSession?: { id: string };
   #handle?: AgentHandle;
   #pending?: Pending;
   #creating?: Promise<AgentHandle>;
   #disposed = false;
   constructor(private readonly ctx: DshHostContext) {}
   private async handle(signal: AbortSignal): Promise<AgentHandle> {
+    // A blank, plugin-owned table Session gives Iris real parent lineage without
+    // adding a chat row or making an LLM request. DSH owns its fiber cleanup.
+    this.#tableSession ??= this.ctx.sessions.create('rivermind-table-' + randomUUID());
     this.#creating ??= this.ctx.agents.create({
       sessionId: this.sessionId, signal,
+      // DSH hides subagent Sessions from ordinary chat navigation. Keep cwd
+      // absent: poker observations contain Iris hole cards and are private.
+      meta: { origin: 'subagent', parentSession: this.#tableSession.id },
       agentOptions: { ...this.ctx.agentDefaultModel.currentSelection(), maxTokens: 2048 },
       setup: scoped => {
+        scoped.on('agent/error', ({ error }) => {
+          const pending = this.#pending;
+          if (!pending || pending.signal.aborted) return;
+          // Record only structured diagnostics; provider error text can contain private data.
+          const code = (error as { code?: unknown } | null)?.code;
+          pending.trace.runtimeError = { kind: 'agent-error',
+            ...(typeof code === 'string' && /^[A-Z][A-Z0-9_-]{0,39}$/.test(code) ? { code } : {}) };
+          pending.reject(new Error('DSH agent failed.'));
+        });
         scoped.tools.restrict({ allow: [] }); // Zero global tools; only these local capabilities remain.
         scoped.tools.presentAs('native'); // Avoid inheriting the coding-agent PTC executor.
         scoped.systemPrompt.suppressRuntimeContext();
@@ -138,6 +156,10 @@ export class DshOpponent implements Opponent {
       this.#handle = handle; return handle;
     } catch (error) { this.#creating = undefined; throw error; }
   }
+  private cancel(handle: AgentHandle, cause: Error): void {
+    // A cancellation error must not prevent the original decision from settling.
+    try { handle.agent.cancel(cause); } catch { /* Original failure is preserved in the trace. */ }
+  }
   private registerTool(scoped: ScopedContext, name: string, description: string, properties: Record<string, unknown>,
     safe: boolean, execute: (args: Record<string, unknown>, pending: Pending, exec: ToolExecution) => unknown,
     required: string[] = []): void {
@@ -188,28 +210,45 @@ export class DshOpponent implements Opponent {
       const decision = await new Promise<Decision>((resolve, reject) => {
         const onAbort = () => {
           this.#pending = undefined;
-          handle.agent.cancel(new Error('Poker decision deadline exceeded.'));
+          this.cancel(handle, new Error('Poker decision deadline exceeded.'));
           reject(signal.reason);
         };
         const cleanup = () => signal.removeEventListener('abort', onAbort);
-        this.#pending = { budget, view: structuredClone(view), memory: structuredClone(memory), signal, calls: 0, recalled: false, trace,
+        const pending: Pending = this.#pending = { budget, view: structuredClone(view), memory: structuredClone(memory), signal, calls: 0, recalled: false, trace,
           resolve: decision => { cleanup(); resolve(decision); },
-          reject: error => { cleanup(); this.#pending = undefined; handle.agent.cancel(error); reject(error); } };
+          reject: error => { cleanup(); this.#pending = undefined; this.cancel(handle, error); reject(error); } };
         signal.addEventListener('abort', onAbort, { once: true });
         try {
           const { id, handsObserved, handsFolded, voluntaryHands, aggressiveHands, summary } = this.#pending!.memory;
           trace.memory!.provided = true;
-          handle.agent.followup({ id: randomUUID(), role: 'user', source: { kind: 'user' }, content: [{ type: 'text',
+          handle.agent.followup({ id: randomUUID(), role: 'user', source: { kind: 'rivermind' }, content: [{ type: 'text',
             text: 'Your turn. Decision budget: ' + budget.timeoutSeconds + ' seconds, at most ' + budget.maxToolCalls +
               ' tool calls INCLUDING submit_action. Submit within this budget. Observation:\n' + JSON.stringify(view) +
               '\nCurrent public opponent memory summary (supersedes older versions; no private cards):\n' +
               JSON.stringify({ id, handsObserved, handsFolded, voluntaryHands, aggressiveHands, summary }) }] });
-        } catch (error) { this.#pending?.reject(error instanceof Error ? error : new Error('Agent input failed.')); }
+          // Idle is failure evidence only; submit_action remains the sole success signal.
+          // Capture this request so a late idle callback cannot reject a later turn.
+          void handle.agent.whenIdle().then(() => {
+            if (this.#pending !== pending) return;
+            trace.runtimeError = { kind: 'no-action' };
+            pending.reject(new Error('DSH turn ended without submitting an action.'));
+          }, () => {
+            if (this.#pending !== pending) return;
+            trace.runtimeError = { kind: 'agent-error' };
+            pending.reject(new Error('DSH agent activity failed.'));
+          });
+        } catch (error) {
+          if (this.#pending === pending && trace.tools.length === 0) {
+            trace.memory!.provided = false;
+            trace.runtimeError = { kind: 'input-rejected' };
+          }
+          this.#pending?.reject(error instanceof Error ? error : new Error('Agent input failed.'));
+        }
       });
       trace.durationMs = performance.now() - started;
       return decision;
     } catch (error) {
-      this.#handle?.agent.cancel(new Error('Poker decision failed.'));
+      if (this.#handle) this.cancel(this.#handle, new Error('Poker decision failed.'));
       trace.durationMs = performance.now() - started;
       trace.failure = signal.aborted && signal.reason?.name === 'TimeoutError' ? 'timeout'
         : error instanceof Error && error.message === 'Poker tool budget exhausted.' ? 'tool-budget' : 'runtime';

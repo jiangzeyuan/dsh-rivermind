@@ -42,6 +42,10 @@ dsh web
 
 插件默认使用 DSH 中已配置的模型，不另行保存 API Key。模型调用使用你的 DSH 账号或 API 配额。单次行动默认预算为 60 秒、最多 10 次工具调用，可在牌桌中调整并保存；超时或提交失败会明确标记安全兜底。
 
+### 牌桌入口与内部会话
+
+当前牌桌通过左侧 **RiverMind 德扑训练场** 打开为独立主页面。Iris 的内部决策会话不会列到 DSH 普通聊天中，牌局结束后在 RiverMind 内查看复盘与记忆。DSH 的“未分组”表示没有工作区归属的聊天集合，不是新建的文件夹；旧版可能把 Iris 列到这里且无法打开，更新构建并重启 DSH 后可释放旧实例。
+
 ### 卸载
 
 桌面版完全退出后执行：
@@ -188,7 +192,7 @@ npm run eval:heads-up -- --pairs=50 --seeds=7,17,29,43,71 --trials=100
 
 三种规则对手 × 三种记忆模式，共 4,500 手；每手 100BB，配对发牌并交换庄位。画像在各组内累计，评估使用独立内存，不触碰训练记忆。报告默认保存到忽略的 `.data/evaluations/heads-up.json`。
 
-本轮条件画像尚未证明收益提升；规则对手结果不代表 DSH 模型水平。命令、对照数据及限制见 [v0.2 评估报告](docs/evaluation-v0.2.md)。
+v0.2 规则评估中，条件画像尚未证明收益提升；规则对手结果不代表 DSH 模型水平。命令、对照数据及限制见 [v0.2 评估报告](docs/evaluation-v0.2.md)。
 
 ## 开发与验证
 
@@ -207,7 +211,7 @@ npm run eval:heads-up -- --pairs=50 --seeds=7,17,29,43,71 --trials=100
     tests/          规则与 Agent 边界测试
     docs/           架构与后续开发方向
 
-详细说明见 [文档导航](docs/README.md) 和 [当前技术设计](docs/technical-design.md)；版本背景见 [设计演进](docs/design-evolution.md)。
+详细说明见 [文档导航](docs/README.md) 和 [当前技术设计](docs/technical-design.md)；版本变化见 [设计演进](docs/design-evolution.md)。
 
 ## 许可证
 

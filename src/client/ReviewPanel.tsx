@@ -64,6 +64,7 @@ export function ReviewPanel({ api, current, handId, onSelect }: {
           {event.trace.budget ? ' · 时限 ' + event.trace.budget.timeoutSeconds + ' 秒 · 工具尝试 ' + event.trace.tools.length + ' / ' + event.trace.budget.maxToolCalls + ' 次' : ''}
           {event.trace.facts ? ' · 跟注门槛 ' + (event.trace.facts.potOdds * 100).toFixed(1) + '%' : ''}
           {event.trace.equity ? ' · 抽样 ' + event.trace.equity.trials + ' 次' : ''}</p>}
+        {event.trace?.runtimeError && <p className="rm-fine-print">失败原因：{{'input-rejected':'决策输入被拒绝','agent-error':'Agent 运行错误','no-action':'本轮结束但未提交动作'}[event.trace.runtimeError.kind]}{event.trace.runtimeError.code ? ' · ' + event.trace.runtimeError.code : ''}</p>}
         {event.trace?.tools.length ? <p className="rm-fine-print">工具：{event.trace.tools.map(t => t.name + '（' + t.status + '）').join(' → ')}</p> : null}
         <div className="rm-evidence-ref">
           <strong>{cited ? '已显式引用长期记忆' : memory?.provided ? '已提供记忆摘要，未显式引用' : retrieved ? '已读取记忆详情，未显式引用' : '未显式引用长期记忆'}</strong>

@@ -108,7 +108,7 @@ test('service applies saved budgets to the deadline and rejects settings during 
 
 function budgetContext(observations: number) {
   const tools = new Map<string, any>(); const prompts: string[] = [];
-  const context = { agentDefaultModel: { currentSelection: () => ({}) }, agents: { create: async (options: any) => {
+  const context = { sessions: { create: (id: string) => ({ id }) }, agentDefaultModel: { currentSelection: () => ({}) }, agents: { create: async (options: any) => {
     const agent = { id: options.sessionId, whenIdle: async () => {}, cancel() {}, followup(message: any) {
       prompts.push(message.content[0].text);
       const execution = { signal: new AbortController().signal, concludeTurn() {} };
@@ -116,7 +116,7 @@ function budgetContext(observations: number) {
       for (let i = 0; i < observations; i++) view = tools.get('get_observation').execute({}, execution);
       tools.get('submit_action').execute({ handId: view.handId, revision: view.revision, type: 'check', rationale: '过牌' }, execution);
     } };
-    options.setup({ tools: { restrict() {}, presentAs() {}, register(tool: any) { tools.set(tool.name, tool); } },
+    options.setup({ on() {}, tools: { restrict() {}, presentAs() {}, register(tool: any) { tools.set(tool.name, tool); } },
       systemPrompt: { section(section: any) { prompts.push(section.text); }, suppressRuntimeContext() {} } }, agent);
     return { agent, dispose: async () => {} };
   } } } as unknown as DshHostContext;
@@ -175,7 +175,7 @@ test('each reused Agent turn receives fresh public memory and validates citation
   const supplied: any[] = []; const system: string[] = [];
   let strategy: 'none' | 'summary' | 'retrieve' | 'details' = 'none';
   let creates = 0;
-  const context = { agentDefaultModel: { currentSelection: () => ({}) }, agents: { create: async (options: any) => {
+  const context = { sessions: { create: (id: string) => ({ id }) }, agentDefaultModel: { currentSelection: () => ({}) }, agents: { create: async (options: any) => {
     creates++;
     const agent = { id: options.sessionId, whenIdle: async () => {}, cancel() {}, followup(message: any) {
       const text = message.content[0].text;
@@ -194,7 +194,7 @@ test('each reused Agent turn receives fresh public memory and validates citation
       }
       tools.get('submit_action').execute({ ...args, memoryIds: strategy === 'summary' || strategy === 'details' ? [memory.id] : [] }, exec);
     } };
-    options.setup({ tools: { restrict() {}, presentAs() {}, register(tool: any) { tools.set(tool.name, tool); } },
+    options.setup({ on() {}, tools: { restrict() {}, presentAs() {}, register(tool: any) { tools.set(tool.name, tool); } },
       systemPrompt: { section(section: any) { system.push(section.text); }, suppressRuntimeContext() {} } }, agent);
     return { agent, dispose: async () => {} };
   } } } as unknown as DshHostContext;

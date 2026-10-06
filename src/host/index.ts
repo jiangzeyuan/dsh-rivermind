@@ -6,7 +6,7 @@ import { PokerService } from './service.js';
 import type { AgentBudget } from '../core/budget.js';
 
 export const name = 'rivermind';
-export const inject = ['agents', 'tools', 'systemPrompt', 'connection', 'agentDefaultModel'];
+export const inject = ['agents', 'sessions', 'tools', 'systemPrompt', 'connection', 'agentDefaultModel'];
 export function apply(ctx: DshHostContext, config: { dataDir?: string; agentBudget?: Partial<AgentBudget> } = {}): void {
   // Installed plugins need a stable writable directory even when Desktop starts
   // from a different working directory. Explicit development config takes priority.

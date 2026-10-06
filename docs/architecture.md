@@ -1,6 +1,6 @@
-# RiverMind 架构说明入口
+# RiverMind 架构入口
 
-架构、Agent 运行时、记忆格式、持久化与验证已统一到 [当前技术设计](technical-design.md)。本页保留旧链接，避免同时维护两份架构规范。
+架构、Agent 运行时、记忆格式、持久化与验证见 [当前技术设计](technical-design.md)。常用章节如下：
 
 - [系统分层](technical-design.md#3-系统分层)
 - [Iris Agent 与工具](technical-design.md#5-iris-如何作为-agent-工作)

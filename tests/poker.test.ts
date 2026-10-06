@@ -178,6 +178,7 @@ test('DSH adapter supplies only local poker tools and correlates submission, not
   let restrictions:unknown,mode:unknown,prompt:unknown,concluded=false;
   let sent:unknown;
   const fakeContext={
+    sessions:{create:(id:string)=>({id})},
     agentDefaultModel:{currentSelection:()=>({provider:'test',model:'test-model'})},
     agents:{create:async(options:any)=>{
       const agent={id:options.sessionId,whenIdle:async()=>{},cancel:()=>{},followup:(message:unknown)=>{sent=message;queueMicrotask(()=>{
@@ -188,7 +189,7 @@ test('DSH adapter supplies only local poker tools and correlates submission, not
         tools.get('submit_action').execute({handId:observation.handId,revision:observation.revision,type:'check',rationale:'无需额外投入，过牌观察。',memoryIds:[memory.id]},
           {signal:new AbortController().signal,concludeTurn:()=>{concluded=true;}});
       });}};
-      options.setup({tools:{restrict:(value:unknown)=>{restrictions=value;},presentAs:(value:unknown)=>{mode=value;},register:(tool:any)=>{tools.set(tool.name,tool);}},
+      options.setup({on() {}, tools:{restrict:(value:unknown)=>{restrictions=value;},presentAs:(value:unknown)=>{mode=value;},register:(tool:any)=>{tools.set(tool.name,tool);}},
         systemPrompt:{section:(value:unknown)=>{prompt=value;},suppressRuntimeContext:()=>{}}},agent);
       return {agent,dispose:async()=>{}};
     }},

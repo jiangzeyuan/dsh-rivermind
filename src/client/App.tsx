@@ -3,6 +3,8 @@ import type { Action, Card as CardValue } from '../core/types.js';
 import type { TableSnapshot } from '../host/service.js';
 import type { PokerApi } from './api.js';
 import { ReviewPanel } from './ReviewPanel.js';
+import { BetControls } from './BetControls.js';
+import { IrisSettings, ThinkingStatus } from './IrisSettings.js';
 
 const STREET_NAMES = { idle: '准备开始', preflop: '翻牌前', flop: '翻牌', turn: '转牌', river: '河牌', complete: '本手结束' };
 const SOURCE_NAMES = { human: '玩家', baseline: '规则陪练', dsh: 'DSH Agent', fallback: '安全兜底' };
@@ -22,7 +24,6 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
   const [state, setState] = useState<TableSnapshot | null>(null);
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
-  const [amount, setAmount] = useState(40);
   const [tab, setTab] = useState<'events' | 'memory' | 'review'>('events');
   const [reviewHandId, setReviewHandId] = useState<string | null>(null);
   const openEvidence = (handId: string) => { setReviewHandId(handId); setTab('review'); };
@@ -46,7 +47,6 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
     void poll();
     return () => { alive.current = false; sequence.current++; clearTimeout(timer); };
   }, [api]);
-  useEffect(() => { if (state?.legal.raise) setAmount(state.legal.raise.min); }, [state?.revision, state?.legal.raise?.min]);
   async function command(endpoint: string, payload: Record<string, unknown> = {}) {
     if (mutating.current || !state) return;
     mutating.current = true; setSending(true); setError('');
@@ -93,10 +93,11 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
             {iris?.folded && <span className="rm-fold-label">已弃牌</span>}
           </div>
           <div className="rm-board-area">
+            {state?.street !== 'idle' && <div className="rm-wagers"><span>Iris 本轮 <b>{iris?.streetBet ?? 0}</b></span><span>你本轮 <b>{human?.streetBet ?? 0}</b></span></div>}
             <div className="rm-pot"><span className="rm-chip">♦</span><span>底池</span><strong>{state?.pot ?? 0}</strong></div>
             <div className="rm-community-cards">{Array.from({ length: 5 }, (_, i) => <Card key={i} value={state?.board[i] ?? null} empty />)}</div>
             <div className="rm-round-message">
-              {state?.runtime.busy ? <><span className="rm-thinking" />Iris 正在{state.runtime.mode === 'dsh' ? '通过 DSH 决策' : '计算行动'}…</>
+              {state?.runtime.busy ? <ThinkingStatus runtime={state.runtime} />
                 : state?.result ? state.result.winners.length > 1 ? '平分底池 · 你 ' + signed(state.result.net.human) :
                   (state.result.winners[0] === 'human' ? '你赢下了这一手' : 'Iris 赢下了这一手') + ' · 你 ' + signed(state.result.net.human) +
                   (state.result.handName ? ' · ' + state.result.handName : '')
@@ -110,24 +111,8 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
             <div className="rm-hole-cards">{(human?.cards.length ? human.cards : [null, null]).map((card, i) => <Card value={card} small key={i} />)}</div>
             {human?.folded && <span className="rm-fold-label">已弃牌</span>}
           </div>
-          {state?.street !== 'idle' && <div className="rm-wagers"><span>Iris 本轮 <b>{iris?.streetBet ?? 0}</b></span><span>你本轮 <b>{human?.streetBet ?? 0}</b></span></div>}
         </div>
-        <div className="rm-actions">
-          <div className="rm-action-heading"><span>{active ? '选择你的行动' : betweenHands ? '手牌间设置' : '等待对手行动'}</span><small>加注金额表示本轮累计下注</small></div>
-          <div className="rm-action-buttons">
-            <button className="rm-button rm-fold" disabled={!active || !state?.legal.fold} onClick={() => action({ type: 'fold' })}>弃牌</button>
-            <button className="rm-button" disabled={!active || !state?.legal.check} onClick={() => action({ type: 'check' })}>过牌</button>
-            <button className="rm-button" disabled={!active || state?.legal.call === null} onClick={() => action({ type: 'call' })}>跟注{state?.legal.call ? ' ' + state.legal.call : ''}</button>
-            <button className="rm-button rm-primary" disabled={!active || !state?.legal.raise} onClick={() => action({ type: 'raise', amount })}>加注至 {amount}</button>
-          </div>
-          <div className="rm-raise-control"><label htmlFor="rm-bet">下注金额</label>
-            <input id="rm-bet" type="range" min={state?.legal.raise?.min ?? 0} max={state?.legal.raise?.max ?? 1}
-              value={state?.legal.raise ? amount : 0} disabled={!active || !state?.legal.raise} onChange={event => setAmount(Number(event.target.value))} />
-            <input aria-label="加注至的筹码数" className="rm-amount-input" type="number" min={state?.legal.raise?.min ?? 0}
-              max={state?.legal.raise?.max ?? 1} value={amount} disabled={!active || !state?.legal.raise}
-              onChange={event => setAmount(Math.max(state?.legal.raise?.min ?? 0, Math.min(state?.legal.raise?.max ?? 0, Number(event.target.value))))} />
-          </div>
-        </div>
+        <BetControls view={state} enabled={!!active} onAction={action} />
         <div className="rm-bottom-note"><span>底牌按玩家隔离 · 行动由规则引擎校验</span>
           <button className="rm-link" disabled={!betweenHands || sending || state?.runtime.busy} onClick={() => command('reset')}>重新开始训练</button></div>
       </main>
@@ -140,7 +125,8 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
             <option value="baseline">规则陪练 · 不调用模型</option>
             <option value="dsh" disabled={!state?.runtime.dshAvailable}>DSH Agent · 调用已配置模型</option>
           </select>
-          <div className="rm-mode-note">{state?.runtime.mode === 'dsh' ? '独立会话 · 4 个扑克工具 · 25 秒行动预算' : '基于牌力抽样和公开统计的固定策略'}</div>
+          <div className="rm-mode-note">{state?.runtime.mode === 'dsh' ? '独立会话 · 4 个扑克工具 · ' + state.runtime.budget.timeoutSeconds + ' 秒行动预算' : '基于牌力抽样和公开统计的固定策略'}</div>
+          <IrisSettings state={state} sending={sending} onSave={budget => { void command('settings', { budget }); }} />
         </section>
         <section className="rm-inspector"><div className="rm-tabs">
           <button className={tab === 'events' ? 'rm-tab-active' : ''} onClick={() => setTab('events')}>行动记录</button>
@@ -168,6 +154,6 @@ export function App({ api, embedded = false }: { api: PokerApi; embedded?: boole
         </div></section>
       </aside>
     </div>
-    <footer className="rm-footer"><span>RIVERMIND <b>02</b> / HEADS-UP FOUNDATION</span><span>长期记忆 · 独立 Agent · 可追溯决策</span></footer>
+    <footer className="rm-footer"><span>RIVERMIND <b>03</b> / HEADS-UP TRAINING</span><span>长期记忆 · 独立 Agent · 可追溯决策</span></footer>
   </div>;
 }

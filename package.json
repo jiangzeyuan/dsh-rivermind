@@ -1,8 +1,7 @@
 {
   "name": "@rivermind/dsh-plugin",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "MIT",
-  "private": true,
   "type": "module",
   "description": "Poker agents with independent decisions and traceable memory, built on DeepSeek Harness.",
   "engines": {
@@ -33,7 +32,9 @@
     "typecheck": "tsc --noEmit",
     "start:dsh": "node scripts/start-dsh.mjs",
     "prepare": "npm run build",
-    "eval:heads-up": "node --import tsx src/eval/cli.ts"
+    "eval:heads-up": "node --import tsx src/eval/cli.ts",
+    "release:check": "npm run typecheck && npm test && npm run build && node scripts/check-package.mjs",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
@@ -57,6 +58,19 @@
     "cordis.patch.yml",
     "docs/",
     "LICENSE",
-    "THIRD_PARTY_NOTICES.md"
-  ]
+    "THIRD_PARTY_NOTICES.md",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jiangzeyuan/dsh-rivermind.git"
+  },
+  "homepage": "https://github.com/jiangzeyuan/dsh-rivermind#readme",
+  "bugs": {
+    "url": "https://github.com/jiangzeyuan/dsh-rivermind/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
 }

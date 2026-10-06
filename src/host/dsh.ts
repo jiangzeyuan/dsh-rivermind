@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { estimateEquity } from '../core/cards.js';
 import { PokerError, type Action, type Card, type Decision, type DecisionTrace, type GameView } from '../core/types.js';
 import type { OpponentMemory } from './memory.js';
+import { DEFAULT_AGENT_BUDGET, validateAgentBudget, type AgentBudget } from '../core/budget.js';
 
 // Minimal, verified 0.2.0-rc.2 SDK boundary. Runtime services are supplied by DSH;
 // this plugin never bundles a second Cordis instance.
@@ -29,6 +30,7 @@ export interface DshHostContext {
   logger: { info(message: string): void; warn(message: string): void };
 }
 interface Pending {
+  budget: AgentBudget;
   view: GameView; memory: OpponentMemory; signal: AbortSignal; calls: number; recalled: boolean;
   trace: DecisionTrace;
   resolve(decision: Decision): void; reject(error: Error): void;
@@ -48,7 +50,7 @@ async function withSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<
 }
 export interface Opponent {
   readonly sessionId?: string;
-  decide(view: GameView, memory: OpponentMemory, signal: AbortSignal): Promise<Decision>;
+  decide(view: GameView, memory: OpponentMemory, signal: AbortSignal, budget?: AgentBudget): Promise<Decision>;
   dispose(): Promise<void>;
 }
 export function validateSubmittedAction(view: GameView, args: Record<string, unknown>): Action {
@@ -82,20 +84,26 @@ export class DshOpponent implements Opponent {
           text: 'You are Iris, a tight-aggressive heads-up Texas Holdem training opponent. ' +
             'Your observation contains only your cards and public information. Do not invent hidden cards. ' +
             'Use the supplied legal actions. Raise amounts are TOTAL contributions in the current street. ' +
-            'You may use at most six tool calls per decision. You have no coding or file tools. ' +
-            'Recall public opponent statistics when useful; use conditions matching street, position and bet size. ' +
+            'Follow the per-decision time and tool-call budget supplied with each observation. ' +
+            'The tool limit includes submit_action; reserve a call for submitting. You have no coding or file tools. ' +
+            'The observation is already supplied; avoid repeated tools that add no evidence. ' +
+            'Each observation includes the latest public-memory summary; it supersedes older versions in this session. ' +
+            'If history informs your action or rationale, cite its current id in memoryIds and state the sample count. ' +
+            'Recall detailed public opponent statistics when useful; use conditions matching street, position and bet size. ' +
             'Condition opportunities, not total hands, are the denominator; fewer than ten opportunities is weak evidence. ' +
             'Use observation.facts for contestable pot odds and effective stacks, excluding uncalled returns. ' +
             'Submit exactly one action with submit_action, copying handId and revision from the observation. ' +
             'Give a concise Chinese justification citing odds or public behavior, not a private reasoning transcript; ' +
-            'do not disclose your exact hole cards in the justification. Only cite memoryIds returned by recall_opponent. ' +
+            'do not disclose your exact hole cards in the justification. Only cite the current memory id supplied in this turn or returned by recall_opponent. ' +
+            'A range estimate from the board or current bets is a hypothesis, not a remembered fact. ' +
+            'Do not assert opponent traits such as stickiness or bluff frequency without supporting historical statistics; label assumptions as uncertain. ' +
             'Use estimate_equity if useful; it assumes a random opponent range and is not a poker solver. ' +
             'After submitting, this turn ends. Your personality is calm, disciplined, and willing to apply pressure with strong evidence.',
         });
         this.registerTool(scoped, 'get_observation', 'Return only your own cards, public board, public actions, and legal choices.', {}, true,
           (_args, pending) => pending.view);
         this.registerTool(scoped, 'recall_opponent', 'Recall your own evidence-backed memory of the human opponent; never contains private cards.', {}, true,
-          (_args, pending) => { pending.recalled = true; return pending.memory; });
+          (_args, pending) => { pending.recalled = true; pending.trace.memory!.retrieved = true; return pending.memory; });
         this.registerTool(scoped, 'estimate_equity', 'Estimate equity against a random opponent using only visible cards. At most 200 trials.', {
           trials: { type: 'integer', minimum: 1, maximum: 200 },
         }, true, (args, pending) => {
@@ -114,8 +122,9 @@ export class DshOpponent implements Opponent {
           const action = validateSubmittedAction(pending.view, args);
           if (typeof args.rationale !== 'string' || args.rationale.trim().length === 0 || args.rationale.length > 500) throw new Error('Provide a concise rationale.');
           const memoryIds = args.memoryIds ?? [];
-          if (!Array.isArray(memoryIds) || memoryIds.length > 1 || (memoryIds.length > 0 && !pending.recalled) ||
+          if (!Array.isArray(memoryIds) || memoryIds.length > 1 || (memoryIds.length > 0 && !pending.recalled && !pending.trace.memory!.provided) ||
               memoryIds.some(id => id !== pending.memory.id || pending.memory.handsObserved === 0)) throw new Error('Unknown memory evidence.');
+          pending.trace.memory!.cited = memoryIds.length > 0;
           exec.concludeTurn();
           this.#pending = undefined; // Reject duplicate or late tool submissions immediately.
           pending.resolve({ action, reason: args.rationale, source: 'dsh', memoryIds, trace: pending.trace });
@@ -145,7 +154,7 @@ export class DshOpponent implements Opponent {
         const record = { name, status: 'ok' as 'ok' | 'error', durationMs: 0 };
         pending.trace.tools.push(record);
         pending.calls++;
-        if (pending.calls > 6) {
+        if (pending.calls > pending.budget.maxToolCalls) {
           const error = new Error('Poker tool budget exhausted.');
           record.status = 'error';
           pending.reject(error);
@@ -163,10 +172,13 @@ export class DshOpponent implements Opponent {
       },
     });
   }
-  async decide(view: GameView, memory: OpponentMemory, signal: AbortSignal): Promise<Decision> {
+  async decide(view: GameView, memory: OpponentMemory, signal: AbortSignal,
+    requestedBudget: AgentBudget = DEFAULT_AGENT_BUDGET): Promise<Decision> {
     if (this.#disposed) throw new Error('Poker opponent disposed.');
     const started = performance.now();
-    const trace: DecisionTrace = { facts: structuredClone(view.facts), durationMs: 0, tools: [] };
+    const budget = validateAgentBudget(requestedBudget);
+    const trace: DecisionTrace = { budget, facts: structuredClone(view.facts), durationMs: 0, tools: [],
+      memory: { id: memory.id, handsObserved: memory.handsObserved, provided: false, retrieved: false, cited: false } };
     try {
       signal.throwIfAborted();
       const handle = await withSignal(this.handle(signal), signal);
@@ -180,12 +192,18 @@ export class DshOpponent implements Opponent {
           reject(signal.reason);
         };
         const cleanup = () => signal.removeEventListener('abort', onAbort);
-        this.#pending = { view: structuredClone(view), memory: structuredClone(memory), signal, calls: 0, recalled: false, trace,
+        this.#pending = { budget, view: structuredClone(view), memory: structuredClone(memory), signal, calls: 0, recalled: false, trace,
           resolve: decision => { cleanup(); resolve(decision); },
           reject: error => { cleanup(); this.#pending = undefined; handle.agent.cancel(error); reject(error); } };
         signal.addEventListener('abort', onAbort, { once: true });
         try {
-          handle.agent.followup({ id: randomUUID(), role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: 'Your turn. Observation:\n' + JSON.stringify(view) }] });
+          const { id, handsObserved, handsFolded, voluntaryHands, aggressiveHands, summary } = this.#pending!.memory;
+          trace.memory!.provided = true;
+          handle.agent.followup({ id: randomUUID(), role: 'user', source: { kind: 'user' }, content: [{ type: 'text',
+            text: 'Your turn. Decision budget: ' + budget.timeoutSeconds + ' seconds, at most ' + budget.maxToolCalls +
+              ' tool calls INCLUDING submit_action. Submit within this budget. Observation:\n' + JSON.stringify(view) +
+              '\nCurrent public opponent memory summary (supersedes older versions; no private cards):\n' +
+              JSON.stringify({ id, handsObserved, handsFolded, voluntaryHands, aggressiveHands, summary }) }] });
         } catch (error) { this.#pending?.reject(error instanceof Error ? error : new Error('Agent input failed.')); }
       });
       trace.durationMs = performance.now() - started;

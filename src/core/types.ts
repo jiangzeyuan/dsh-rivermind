@@ -1,3 +1,5 @@
+import type { AgentBudget } from './budget.js';
+
 export type PlayerId = 'human' | 'iris';
 export type Street = 'idle' | 'preflop' | 'flop' | 'turn' | 'river' | 'complete';
 export type Card = string;
@@ -14,9 +16,11 @@ export interface ActionContext {
   betSize: BetSize | null;
 }
 export interface DecisionTrace {
+  budget?: AgentBudget;
   facts?: DecisionFacts;
   durationMs: number;
   tools: { name: string; status: 'ok' | 'error'; durationMs: number }[];
+  memory?: { id: string; handsObserved: number; provided: boolean; retrieved: boolean; cited: boolean };
   equity?: { value: number; trials: number; assumption: string };
   failure?: 'timeout' | 'tool-budget' | 'runtime';
 }

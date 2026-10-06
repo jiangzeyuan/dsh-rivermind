@@ -2,9 +2,11 @@
 
 基于 DeepSeek Harness 的德扑 Agent 项目：独立玩家、受限工具、可追溯决策，以及按玩家保存的长期记忆。
 
-当前为 v0.2 双人训练里程碑：**你与 Iris 的双人无限注德扑训练桌**。在完整牌局和 DSH Agent 接入基础上，加入条件画像、历史复盘与可重复的规则评估。
+当前为 v0.3：**你与 Iris 的双人无限注德扑训练桌**。支持同栏展示的 BB / 底池比例快捷下注、BB / 筹码双单位展示、小数 BB 输入、默认收起且可保存的 Iris 决策预算，以及条件画像、记忆引用状态、历史复盘和可重复的规则评估。
 
 ![v0.1 DSH 牌桌示例，新版增加条件画像和历史复盘](docs/images/rivermind-dsh.jpg)
+
+版本更新见 [CHANGELOG](CHANGELOG.md)，完整方案见 [当前技术设计](docs/technical-design.md)，各版本取舍见 [设计演进](docs/design-evolution.md)。维护者的发布顺序与操作见 [发布指南](docs/publishing.md)。
 
 ## 安装到已有的 DeepSeek Harness
 
@@ -38,7 +40,7 @@ dsh web
 
 如果 Web 版已经运行，安装后重启该进程。`desktop` 和 `web` 是两个独立 profile，需要把插件安装到实际使用的那个。`web` 的上述安装、正常启动、认证接口及规则模式完整牌局已在独立 DSH_HOME 中验证；没有改动已有的桌面配置，也没有调用模型。桌面安装后的界面交互仍需在实际应用中确认。
 
-插件默认使用 DSH 中已配置的模型，不另行保存 API Key。模型调用使用你的 DSH 账号或 API 配额。单次行动预算为 25 秒、最多 6 次工具调用；超时或提交失败会明确标记安全兜底。
+插件默认使用 DSH 中已配置的模型，不另行保存 API Key。模型调用使用你的 DSH 账号或 API 配额。单次行动默认预算为 60 秒、最多 10 次工具调用，可在牌桌中调整并保存；超时或提交失败会明确标记安全兜底。
 
 ### 卸载
 
@@ -49,6 +51,17 @@ dsh plugin --profile desktop remove @rivermind/dsh-plugin
 ```
 
 Web 版把 `desktop` 改为 `web`，然后重启对应 DSH。卸载不清理训练记忆。本地开发依赖若被包管理器清理，运行 `npm ci` 可恢复。
+
+## npm 按包名安装（发布后）
+
+当前 v0.3 源码已完成，npm 包仍待正式发布；下面是发布并验收后的目标安装方式，现在不要将它当作已可用的命令。
+
+```sh
+dsh plugin --profile web add @rivermind/dsh-plugin@0.3.0
+dsh web
+```
+
+桌面用户在应用初始化并完全退出后，把 `web` 改为 `desktop`，安装后重新打开。npm 包携带构建产物，使用者不需要下载源码或执行 `npm ci`。包名发布前仍需确认对应命名空间权限；最终名称及发布状态见 [发布指南](docs/publishing.md)。
 
 ## 从 GitHub 安装
 
@@ -82,13 +95,13 @@ allowBuilds:
 
 ### 预构建包
 
-维护者可以执行 `npm pack` 生成 `rivermind-dsh-plugin-0.2.0.tgz`，并在未来的 GitHub Release 提供下载。构建产物、bundle 配置和文档会进入包，训练数据不会进入。下载后安装：
+维护者可以执行 `npm pack` 生成 `rivermind-dsh-plugin-0.3.0.tgz`，并在未来的 GitHub Release 提供下载。构建产物、bundle 配置和文档会进入包，训练数据不会进入。下载后安装：
 
 ```sh
-dsh plugin --profile desktop add ./rivermind-dsh-plugin-0.2.0.tgz
+dsh plugin --profile desktop add ./rivermind-dsh-plugin-0.3.0.tgz
 ```
 
-这一方式携带构建产物，用户不需要在本地编译 RiverMind。预构建包的离线安装和 Host／客户端入口加载检查已通过；当前尚无已发布的 Release。
+这一方式携带构建产物，用户不需要在本地编译 RiverMind。预构建包的离线安装和 Host／客户端入口加载检查已通过；当前尚无已发布的 Release；包检查见 `npm run release:check`。
 
 ## 插件市场与收录
 
@@ -121,12 +134,25 @@ RIVERMIND_DSH_PORT=3081 npm run start:dsh
 
 打开 http://127.0.0.1:4317 。该预览明确标注为**规则陪练**，用于验证 UI 和扑克规则，不会伪装成 DSH 模型对手。DSH 牌桌也可以在两手牌之间切换到此模式。
 
+## 下注与 Iris 设置
+
+翻牌前直接显示 2、2.5、3、5、10 BB 和全下；翻牌后在同一栏优先展示底池比例与全下，固定 BB 金额同样可直接选取。窄窗口可横向滑动查看，折叠区“滑动选额”只保留滑块。BB 输入箭头按 0.5 BB 调整，筹码单位按 1 筹码调整，手动输入仍支持精确的小数 BB。跟注和下注确认按钮同时标出 BB 与筹码数；轮到你且能加注时才显示金额编辑区。按钮只选择金额，确认行动后才提交。金额表示**本轮累计投入**；底池比例按“跟注后再加注”计算。非法快捷金额会禁用。
+
+金额输入可切换 BB / 筹码。例如盲注 10 / 20 时，输入 `2.35 BB` 等于 47 筹码；最小筹码单位仍为 1。滑动选择保留在折叠区域。
+
+侧栏 **Iris 决策预算** 默认收起，摘要保留当前上限；展开后可在两手牌之间选择快速（25 秒 / 6 次）、标准（60 秒 / 10 次）、深入（120 秒 / 16 次）或自定义；点击 **保存 Iris 预算** 后生效，重启后保留。思考时限范围为 5～300 秒，工具上限为 1～32 次，包含最终的 `submit_action`。规则陪练不使用这些模型预算。
+
+每次 DSH 行动主动提供最新公开统计摘要，条件详情仍按需检索。复盘区分摘要提供、详情读取与显式引用；没有引用不能证明长期记忆完全没影响，模型对范围或风格的说明也不能单独视为长期画像。
+
+历史复盘中，Iris 的底牌在摊牌结算时展示；弃牌结束的牌局显示“未亮牌”，记录不包含其未公开底牌。思考时显示已经等待的时间；结束复盘显示该次使用的预算、工具尝试及失败原因。更多细节见 [当前技术设计](docs/technical-design.md)。
+
 ## 当前能力
 
 - 双人牌桌：交替庄位、小盲 / 大盲、弃牌、过牌、跟注、加注、全下跑牌及摊牌结算。
 - 后端校验行动者、手牌编号、状态版本与合法金额。加注金额表示当前下注轮的累计金额。
 - 独立 Iris Agent：新建会话，不继承其他会话；没有文件、Shell、联网、子 Agent 等全局工具。
-- 四个扑克工具：get_observation、recall_opponent、estimate_equity、submit_action。
+- 四个扑克工具：get_observation、recall_opponent、estimate_equity、submit_action；预算可调整、保存，并绑定到每次决策。
+- BB 与底池比例快捷下注、BB / 筹码精确输入，后端继续校验合法金额。
 - 决策时记录简短理由与记忆引用；手牌结束后开放历史复盘，支持逐步回放、记忆证据跳转与工具摘要。
 - 长期保存公开对手统计与条件画像：按下注轮、位置、下注尺度记录实际回应次数，附样本量、近似区间及证据编号；兼容旧记忆文件。
 - 统一记录未跟注退款，提供可争夺底池赔率、有效筹码和跟注后 SPR。
@@ -148,7 +174,7 @@ RIVERMIND_DSH_PORT=3081 npm run start:dsh
 - hands.jsonl：公开手牌事件，不包含底牌或决策理由。
 - reviews.jsonl：已结束手牌视图、简短理由、工具摘要与更新前画像；供历史复盘，不作为 Agent 观察或记忆来源。
 
-开发时另有 `.data/rivermind.patch.yml`，它是根据当前项目绝对路径生成的启动覆盖层，不属于训练记忆。
+另有 `agent-settings.json` 保存 Iris 决策预算，按需迁移，不属于 Agent 记忆。开发时的 `.data/rivermind.patch.yml` 是根据当前项目绝对路径生成的启动覆盖层，不属于训练记忆。
 
 “重新开始训练”会重置筹码和牌局，保留 Iris 的长期统计记忆。不要把 .data/ 提交到仓库。
 
@@ -181,7 +207,7 @@ npm run eval:heads-up -- --pairs=50 --seeds=7,17,29,43,71 --trials=100
     tests/          规则与 Agent 边界测试
     docs/           架构与后续开发方向
 
-详细说明见 [文档导航](docs/README.md) 和 [v0.2 技术方案](docs/technical-design-v0.2.md)；[架构速查](docs/architecture.md) 保留为简版。
+详细说明见 [文档导航](docs/README.md) 和 [当前技术设计](docs/technical-design.md)；版本背景见 [设计演进](docs/design-evolution.md)。
 
 ## 许可证
 

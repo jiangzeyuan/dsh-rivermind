@@ -3,10 +3,11 @@ import { homedir } from 'node:os';
 import { PokerError } from '../core/types.js';
 import { DshOpponent, type DshHostContext } from './dsh.js';
 import { PokerService } from './service.js';
+import type { AgentBudget } from '../core/budget.js';
 
 export const name = 'rivermind';
 export const inject = ['agents', 'tools', 'systemPrompt', 'connection', 'agentDefaultModel'];
-export function apply(ctx: DshHostContext, config: { dataDir?: string } = {}): void {
+export function apply(ctx: DshHostContext, config: { dataDir?: string; agentBudget?: Partial<AgentBudget> } = {}): void {
   // Installed plugins need a stable writable directory even when Desktop starts
   // from a different working directory. Explicit development config takes priority.
   const configuredHome = process.env.DSH_HOME ?? '';
@@ -14,10 +15,10 @@ export function apply(ctx: DshHostContext, config: { dataDir?: string } = {}): v
   const expandedHome = selectedHome === '~' ? homedir()
     : /^~[\\/]/.test(selectedHome) ? resolve(homedir(), selectedHome.slice(2)) : selectedHome;
   const dataDir = config.dataDir ?? resolve(expandedHome, 'data', 'rivermind');
-  const service = new PokerService(resolve(dataDir), new DshOpponent(ctx));
+  const service = new PokerService(resolve(dataDir), new DshOpponent(ctx), 450, { agentBudget: config.agentBudget });
   // Exact routes join DSH's authenticated /api transport, including the desktop
   // local carrier, without creating a second generic RPC channel.
-  for (const endpoint of ['state', 'deal', 'action', 'mode', 'reset', 'history', 'review']) {
+  for (const endpoint of ['state', 'deal', 'action', 'mode', 'reset', 'history', 'review', 'settings']) {
     ctx.connection.fetch.register({
       path: '/api/rivermind/' + endpoint, methods: ['POST'], requestBody: 'buffered',
       fetch: async request => {

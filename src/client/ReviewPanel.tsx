@@ -46,19 +46,33 @@ export function ReviewPanel({ api, current, handId, onSelect }: {
         <div className="rm-replay-controls"><button className="rm-button" disabled={step === 0} onClick={() => setStep(step - 1)}>上一步</button><button className="rm-button" disabled={step === review.view.events.length} onClick={() => setStep(step + 1)}>下一步</button></div>
         <p>{step} / {review.view.events.length} · {last?.message ?? '发牌前'}</p>
         <p>公共牌：{frame!.board.map(cardLabel).join(' ') || '尚未发出'} · 底池 {frame!.pot}</p>
-        {frame!.players.map(player => <p key={player.id}>{player.name}：{player.cards.map(cardLabel).join(' ')} · 筹码 {player.stack}</p>)}
+        {frame!.players.map(player => <p key={player.id}>{player.name}：{step === 0 ? '尚未发牌'
+          : player.cards.some(Boolean) ? player.cards.map(cardLabel).join(' ') : '未亮牌'} · 筹码 {player.stack}</p>)}
+        <small>{review.view.result?.reason === 'fold' ? '本手因弃牌结束，Iris 未亮牌；历史记录不包含其底牌。'
+          : step < review.view.events.length ? 'Iris 底牌在摊牌结算时公开，继续回放即可查看。' : '双方摊牌，底牌已公开。'}</small>
       </div>
       <div className="rm-memory-entry"><span className="rm-entry-label">该手决策时可用的记忆</span><p>{review.memoryBeforeUpdate.summary}</p><small>{review.memoryBeforeUpdate.id}</small></div>
-      <p className="rm-fine-print">以下理由和工具记录均在手牌结束后开放。抽样胜率假设随机对手范围，不能证明最优策略。</p>
-      {decisions.map(event => <article className="rm-review-item" key={event.id}>
+      <p className="rm-fine-print">以下说明在手牌结束后开放。模型说明可能含推测，不能单独作为你的长期画像；请核对历史样本与记忆引用。抽样胜率假设随机对手范围。</p>
+      {decisions.map(event => {
+        const memory = event.trace?.memory;
+        const cited = !!event.memoryIds?.length;
+        const retrieved = memory?.retrieved ?? !!event.trace?.tools.some(tool => tool.name === 'recall_opponent' && tool.status === 'ok');
+        return <article className="rm-review-item" key={event.id}>
         <div><span className="rm-status-pill">{STREETS[event.street]}</span><small>{SOURCES[event.source ?? 'baseline']}</small></div>
-        <h3>{event.message}</h3><p>{event.reason}</p>
-        {event.trace && <p className="rm-fine-print">耗时 {Math.round(event.trace.durationMs)} ms{event.trace.failure ? ' · 失败类别 ' + event.trace.failure : ''}
+        <h3>{event.message}</h3>{event.source === 'dsh' && <small className="rm-reason-label">决策说明 · 模型生成</small>}<p>{event.reason}</p>
+        {event.trace && <p className="rm-fine-print">耗时 {Math.round(event.trace.durationMs)} ms{event.trace.failure ? ' · ' + {timeout:'思考超时','tool-budget':'工具次数耗尽',runtime:'调用失败'}[event.trace.failure] : ''}
+          {event.trace.budget ? ' · 时限 ' + event.trace.budget.timeoutSeconds + ' 秒 · 工具尝试 ' + event.trace.tools.length + ' / ' + event.trace.budget.maxToolCalls + ' 次' : ''}
           {event.trace.facts ? ' · 跟注门槛 ' + (event.trace.facts.potOdds * 100).toFixed(1) + '%' : ''}
           {event.trace.equity ? ' · 抽样 ' + event.trace.equity.trials + ' 次' : ''}</p>}
         {event.trace?.tools.length ? <p className="rm-fine-print">工具：{event.trace.tools.map(t => t.name + '（' + t.status + '）').join(' → ')}</p> : null}
-        <small className="rm-evidence-ref">{event.memoryIds?.length ? '记忆引用：' + event.memoryIds.join(', ') : '本次未引用长期记忆'}</small>
-      </article>)}
+        <div className="rm-evidence-ref">
+          <strong>{cited ? '已显式引用长期记忆' : memory?.provided ? '已提供记忆摘要，未显式引用' : retrieved ? '已读取记忆详情，未显式引用' : '未显式引用长期记忆'}</strong>
+          {memory?.provided && <span>当时提供 {memory.handsObserved} 手公开行为统计 · {retrieved ? '已读取条件详情' : '未读取条件详情'}</span>}
+          {cited ? <span>记忆引用：{event.memoryIds!.join(', ')}</span>
+            : event.source === 'dsh' && <span>{memory?.handsObserved === 0 ? '当时没有历史样本。' : ''}没有显式引用，无法确认长期统计对本次决策的影响；范围或风格描述可能是推测。{!memory && !retrieved ? '本次未调用记忆工具，会话可能保留此前信息。' : ''}</span>}
+        </div>
+      </article>;
+      })}
       {decisions.length === 0 && <p className="rm-fine-print">此回放步骤之前没有 Iris 决策。</p>}
     </>}
   </div>;

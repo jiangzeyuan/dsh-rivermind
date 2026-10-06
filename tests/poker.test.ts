@@ -183,7 +183,7 @@ test('DSH adapter supplies only local poker tools and correlates submission, not
       const agent={id:options.sessionId,whenIdle:async()=>{},cancel:()=>{},followup:(message:unknown)=>{sent=message;queueMicrotask(()=>{
         const observation=tools.get('get_observation').execute({}, {signal:new AbortController().signal,concludeTurn:()=>{}});
         assert.deepEqual(observation.players[0].cards,[null,null]);
-        assert.throws(()=>tools.get('submit_action').execute({handId:observation.handId,revision:observation.revision,type:'check',rationale:'过牌。',memoryIds:[memory.id]}, {signal:new AbortController().signal,concludeTurn:()=>{}}));
+        assert.throws(()=>tools.get('submit_action').execute({handId:observation.handId,revision:observation.revision,type:'check',rationale:'过牌。',memoryIds:['unknown-memory']}, {signal:new AbortController().signal,concludeTurn:()=>{}}));
         tools.get('recall_opponent').execute({}, {signal:new AbortController().signal,concludeTurn:()=>{}});
         tools.get('submit_action').execute({handId:observation.handId,revision:observation.revision,type:'check',rationale:'无需额外投入，过牌观察。',memoryIds:[memory.id]},
           {signal:new AbortController().signal,concludeTurn:()=>{concluded=true;}});

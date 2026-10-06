@@ -1,8 +1,8 @@
-# RiverMind v0.1 方案入口
+# RiverMind v0.3 方案入口
 
 当前实现统一维护在 [当前技术设计](technical-design.md)。
 
-- [v0.1 历史快照](archive/technical-design-v0.1.md)
+- [v0.3 历史快照](archive/technical-design-v0.3.md)
 - [版本设计演进](design-evolution.md)
 - [面向使用者的 CHANGELOG](../CHANGELOG.md)
 

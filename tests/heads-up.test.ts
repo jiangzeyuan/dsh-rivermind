@@ -144,7 +144,7 @@ test('tool budget failure is diagnosed and successful submissions include their 
   for(const mode of ['budget','valid'] as const){
     const mock=mockDsh(mode),opponent=new DshOpponent(mock.context);
     try{
-      if(mode==='budget')await assert.rejects(opponent.decide(table.viewFor('iris'),new OpponentProfile().recall(),new AbortController().signal),e=>e instanceof DecisionFailure && e.trace.failure==='tool-budget' && e.trace.tools.length===7);
+      if(mode==='budget')await assert.rejects(opponent.decide(table.viewFor('iris'),new OpponentProfile().recall(),new AbortController().signal,{timeoutSeconds:25,maxToolCalls:6}),e=>e instanceof DecisionFailure && e.trace.failure==='tool-budget' && e.trace.tools.length===7);
       else {const result=await opponent.decide(table.viewFor('iris'),new OpponentProfile().recall(),new AbortController().signal);assert.deepEqual(result.trace!.tools.map(t=>t.name),['get_observation','submit_action']);assert(result.trace!.durationMs>=0);}
       assert.throws(()=>mock.tools.get('get_observation').execute({}, {signal:new AbortController().signal,concludeTurn(){}}));
     }finally{await opponent.dispose();}
@@ -173,7 +173,11 @@ test('DSH history routes preserve the RPC envelope and only expose finished huma
     const body=await response.json();assert.equal(body.type,'server-response');assert.equal(body.rpcId,'test-rpc');return body.result;
   }
   try{
+    const settings=await call('settings',{revision:0,budget:{timeoutSeconds:90,maxToolCalls:12}});
+    assert.equal(settings.ok,true);assert.deepEqual(settings.value.runtime.budget,{timeoutSeconds:90,maxToolCalls:12});
+    assert.equal((await call('settings',{revision:0,budget:{timeoutSeconds:900,maxToolCalls:12}})).ok,false);
     await call('mode',{mode:'baseline'});let view=(await call('deal',{revision:0})).value;
+    assert.equal((await call('settings',{revision:view.revision,budget:{timeoutSeconds:60,maxToolCalls:10}})).error.code,'HAND_ACTIVE');
     assert.equal((await call('review',{handId:view.handId})).ok,false);
     view=(await call('action',{revision:view.revision,handId:view.handId,action:{type:'fold'}})).value;
     const history=await call('history',{});assert.equal(history.ok,true);assert.equal(history.value.hands.length,1);

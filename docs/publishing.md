@@ -7,14 +7,14 @@
 | 阶段 | 状态 | 完成凭据 |
 | --- | --- | --- |
 | v0.3 功能与文档 | 已完成并合入 `main` | 42 项测试、浏览器交互检查、完整设计和 CHANGELOG |
-| npm 发布准备 | 元数据与预构建包检查已准备 | `npm run release:check` |
-| npm 正式发布 | `0.3.0` 已发布；`0.3.1` 为安装文档与包简介修订，正在发布准备 | [npm 包](https://www.npmjs.com/package/dsh-rivermind)；registry 已确认 `0.3.0` |
-| 从 registry 按包名安装 | `0.3.0` 已通过独立 Web profile 验收 | 实际牌桌加载、完整规则牌局、复盘，以及重启后预算 / 记忆 / 历史保留；未调用模型 |
-| 市场收录 | 条目草稿已准备，尚未提交 | 收录 PR 合并，目录与市场更新 |
+| npm 发布准备 | 已完成 | 42 项测试、`npm run release:check` 和预构建包检查通过 |
+| npm 正式发布 | `0.3.0`、`0.3.1` 已发布，`latest` 为 `0.3.1` | [npm 包](https://www.npmjs.com/package/dsh-rivermind)；registry 已确认版本、简介及新版 README |
+| 从 registry 按包名安装 | `0.3.0`、`0.3.1` 均已通过独立 Web profile 验收 | 实际牌桌加载、完整规则牌局、复盘，以及重启后预算 / 记忆 / 历史保留；未调用模型 |
+| 市场收录 | 已准备并推送 fork 分支，PR 尚未提交 | [待提交分支](https://github.com/jiangzeyuan/awesome-dsh-plugin/tree/add-rivermind)；等待创建满一天后提交 |
 
 ### 已完成的 npm 安装验收
 
-2026-10-06，从公开 registry 用 `dsh plugin --profile web add dsh-rivermind@0.3.0` 安装到全新 `DSH_HOME`，没有使用本地目录或 `.tgz`。
+2026-10-06，从公开 registry 分别安装 `dsh-rivermind@0.3.0` 和 `dsh-rivermind@0.3.1` 到两个全新 `DSH_HOME`，命令为 `dsh plugin --profile web add`，没有使用本地目录或 `.tgz`。
 
 - 实际 DSH Web 载入牌桌入口与客户端，包中的 Host、客户端及 bundle 均存在。
 - 决策预算默认收起；在界面保存 120 秒 / 16 次后生效。
@@ -22,9 +22,9 @@
 - 完成一手规则陪练牌局，筹码守恒，更新公开行为记忆并保存历史复盘；未调用模型。
 - 关闭并重启该独立 DSH，确认预算、长期记忆与历史复盘保留。
 
-`0.3.1` 仅更新发布说明与包简介；其 registry 安装检查仍需在正式发布后完成。桌面真实应用及真实模型稳定性不能由上述规则模式验收替代。
+`0.3.1` 仅更新发布说明与包简介，其 registry 安装检查也已通过；Host、客户端及配置与 `0.3.0` 一致。桌面真实应用及真实模型稳定性不能由上述规则模式验收替代。
 
-正式包名统一为 `dsh-rivermind`，与仓库名一致。package metadata、bundle、客户端模块 ID 与 lockfile 均使用同一名称；公开 registry 已发布 `0.3.0`。旧本地开发包的迁移步骤见 [README](../README.md#从旧的本地开发包升级)。
+正式包名统一为 `dsh-rivermind`，与仓库名一致。package metadata、bundle、客户端模块 ID 与 lockfile 均使用同一名称；公开 registry 的 `latest` 为 `0.3.1`。旧本地开发包的迁移步骤见 [README](../README.md#从旧的本地开发包升级)。
 
 ## 1. 完成并固定 v0.3 源码
 
@@ -100,6 +100,15 @@ dsh web
 5. 合并后等待目录 / 市场同步，确认条目出现且安装来源正确，再在 README 更新“已收录”。提交 PR 本身不等于上架。
 
 [dshmarket 提交说明](https://github.com/dsh-market/dsh-market#submit-your-plugin)指出它读取上述目录，合并后才由目录和市场更新；同步时间取决于其维护与任务运行，不保证立即可见。
+
+## 本次市场提交准备
+
+- 仓库已添加 `dsh-plugin`、`deepseek-harness` topics，已声明 `dsh.bundle`。
+- [fork 的 `add-rivermind` 分支](https://github.com/jiangzeyuan/awesome-dsh-plugin/tree/add-rivermind) 只新增一个 `data/plugins/jiangzeyuan__dsh-rivermind.yml`，官方条目格式及重复项检查通过。
+- [PR 文案](publishing/market-pr.md) 已补入实际 npm 地址和两版安装验收记录。
+- 原仓库创建于 2026-10-05 13:21:39 UTC，满一天的时间为 **2026-10-06 21:21:39（北京时间）**。本次选择在此时间之后提交，PR 尚未创建。
+- 届时打开 [创建收录 PR 的比较页](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/compare/main...jiangzeyuan:awesome-dsh-plugin:add-rivermind?expand=1)，核对只新增上述 YAML，使用已准备文案提交。
+- 提交后仍需目录 CI 通过和维护者审核合并；完成 PR 不等于市场已收录。
 
 ## 后续维护
 

@@ -34,7 +34,7 @@ dsh web
 
 按启动日志给出的认证地址打开页面，再选择 **RiverMind 德扑训练场**。如果 Web 版已运行，安装后重启该进程。`desktop` 和 `web` 是两个独立 profile，需要安装到实际使用的那个。
 
-npm `0.3.0` 已在全新 Web profile 验证按包名安装、实际牌桌加载、完整规则牌局和重启后的预算 / 记忆 / 历史保留；桌面安装后的界面仍需在实际应用中确认。
+npm `0.3.0` 和 `0.3.1` 均已在全新 Web profile 验证按包名安装、实际牌桌加载、完整规则牌局和重启后的预算 / 记忆 / 历史保留；桌面安装后的界面仍需在实际应用中确认。
 
 插件使用 DSH 中已配置的模型，不另行保存 API Key。模型调用使用你的 DSH 账号或 API 配额。单次行动默认预算为 60 秒、最多 10 次工具调用，可在牌桌中调整并保存；超时或提交失败会明确标记安全兜底。发布与安装验收记录见 [发布指南](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/publishing.md)。
 
@@ -95,7 +95,7 @@ allowBuilds:
 
 npm 包已可直接安装。社区市场收录需要向 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 提交 PR，目录接纳并更新后才会在 `dshmarket` 出现，详见 [市场提交说明](https://github.com/dsh-market/dsh-market#submit-your-plugin)。
 
-当前市场条目已准备，正在完成 npm 安装验收后提交；尚未宣称市场搜索或一键安装可用。实际进度见 [发布指南](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/publishing.md)。
+当前 npm 发布与独立安装验收均已完成，市场条目及 PR 文案已准备，收录申请尚未提交。实际进度见 [发布指南](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/publishing.md)。
 
 ## 开发时临时加载
 

@@ -6,7 +6,7 @@ await build({ entryPoints: ['src/host/index.ts'], outfile: 'dist/host/index.js',
 await build({ entryPoints: ['src/client/index.tsx'], outfile: 'dist/client.js', bundle: true,
   platform: 'browser', format: 'cjs', target: 'es2022', external: ['react', 'react/jsx-runtime'],
   loader: { '.css': 'text' }, sourcemap: true,
-  banner: { js: "window.__ModuleLoader__.load({id:'@rivermind/dsh-plugin',factory:(require)=>{var module={exports:{}};var exports=module.exports;" },
+  banner: { js: "window.__ModuleLoader__.load({id:'dsh-rivermind',factory:(require)=>{var module={exports:{}};var exports=module.exports;" },
   footer: { js: 'return module.exports;}});' } });
 await build({ entryPoints: ['src/client/standalone.tsx'], outfile: 'dist/standalone.js', bundle: true,
   platform: 'browser', format: 'esm', target: 'es2022', loader: { '.css': 'text' }, sourcemap: true,

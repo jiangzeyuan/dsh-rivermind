@@ -12,7 +12,7 @@
 | 从 registry 按包名安装 | 待 npm 发布后验收 | 干净 DSH profile 的安装与实际加载检查 |
 | 市场收录 | 条目草稿已准备，尚未提交 | 收录 PR 合并，目录与市场更新 |
 
-当前包名为 `@rivermind/dsh-plugin`。它要求 npm 账号拥有 `@rivermind` 命名空间的发布权限；GitHub 用户名或仓库名不会自动授予该权限。如果没有此权限，发布前统一改用可发布的包名，例如 `dsh-rivermind`，并同步 bundle、客户端模块 ID、文档与 lockfile。公开 registry 未查到某名称不等于保证它可以注册，最终以发布校验为准。
+正式包名统一为 `dsh-rivermind`，与仓库名一致。package metadata、bundle、客户端模块 ID 与 lockfile 均使用同一名称；公开 registry 未查到某名称不等于保证它可以注册，最终以发布校验为准。旧本地开发包的迁移步骤见 [README](../README.md#从旧的本地开发包升级)。
 
 ## 1. 完成并固定 v0.3 源码
 
@@ -50,10 +50,10 @@ npm whoami --registry=https://registry.npmjs.org/
 
 ```sh
 npm publish --access public --registry=https://registry.npmjs.org/
-npm view @rivermind/dsh-plugin@0.3.0 version dist.tarball --registry=https://registry.npmjs.org/
+npm view dsh-rivermind@0.3.0 version dist.tarball --registry=https://registry.npmjs.org/
 ```
 
-如果最终改名，命令也必须同步。成功查询到 `0.3.0` 及 tarball 才算发布完成；不要将 dry run、Git push 或本地 `.tgz` 当作 npm 正式发布。已经发布的名称 / 版本不能直接覆盖，修复后升级补丁版本并追加 CHANGELOG。
+成功查询到 `0.3.0` 及 tarball 才算发布完成；不要将 dry run、Git push 或本地 `.tgz` 当作 npm 正式发布。已经发布的名称 / 版本不能直接覆盖，修复后升级补丁版本并追加 CHANGELOG。
 
 ## 3. 在独立 DSH 环境按包名验收
 
@@ -61,7 +61,7 @@ npm view @rivermind/dsh-plugin@0.3.0 version dist.tarball --registry=https://reg
 
 ```sh
 RIVERMIND_VERIFY_HOME="$(mktemp -d)"
-DSH_HOME="$RIVERMIND_VERIFY_HOME" dsh plugin --profile web add @rivermind/dsh-plugin@0.3.0
+DSH_HOME="$RIVERMIND_VERIFY_HOME" dsh plugin --profile web add dsh-rivermind@0.3.0
 DSH_HOME="$RIVERMIND_VERIFY_HOME" dsh --profile web --dump-config
 DSH_HOME="$RIVERMIND_VERIFY_HOME" dsh web --no-open --port 3081
 ```
@@ -71,7 +71,7 @@ DSH_HOME="$RIVERMIND_VERIFY_HOME" dsh web --no-open --port 3081
 常规用户目标命令是：
 
 ```sh
-dsh plugin --profile web add @rivermind/dsh-plugin@0.3.0
+dsh plugin --profile web add dsh-rivermind@0.3.0
 dsh web
 ```
 

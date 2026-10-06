@@ -17,7 +17,7 @@ export function apply(ctx: ClientContext) {
   const Icon = ({ size = 18 }: { size?: number }) => <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 21 12 12 22 3 12Z" fill="currentColor" /><path d="M12 6 17 12 12 18 7 12Z" fill="none" stroke="currentColor" strokeWidth="1" /></svg>;
   ctx.effect(() => {
     const tag = document.createElement('style');
-    tag.dataset.plugin = '@rivermind/dsh-plugin'; tag.textContent = styles;
+    tag.dataset.plugin = 'dsh-rivermind'; tag.textContent = styles;
     document.head.appendChild(tag);
     return () => tag.remove();
   });

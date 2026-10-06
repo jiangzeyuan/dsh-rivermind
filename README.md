@@ -51,25 +51,36 @@ dsh web
 桌面版完全退出后执行：
 
 ```sh
-dsh plugin --profile desktop remove @rivermind/dsh-plugin
+dsh plugin --profile desktop remove dsh-rivermind
 ```
 
 Web 版把 `desktop` 改为 `web`，然后重启对应 DSH。卸载不清理训练记忆。本地开发依赖若被包管理器清理，运行 `npm ci` 可恢复。
 
-## npm 按包名安装（发布后）
+## npm 按包名安装
 
-当前 v0.3 源码已完成，npm 包仍待正式发布；下面是发布并验收后的目标安装方式，现在不要将它当作已可用的命令。
+npm 包名为 `dsh-rivermind`。发布进度见 [发布指南](docs/publishing.md)；包携带构建产物，安装后即可由 DSH 加载。
 
 ```sh
-dsh plugin --profile web add @rivermind/dsh-plugin@0.3.0
+dsh plugin --profile web add dsh-rivermind@0.3.0
 dsh web
 ```
 
-桌面用户在应用初始化并完全退出后，把 `web` 改为 `desktop`，安装后重新打开。npm 包携带构建产物，使用者不需要下载源码或执行 `npm ci`。包名发布前仍需确认对应命名空间权限；最终名称及发布状态见 [发布指南](docs/publishing.md)。
+桌面用户在应用初始化并完全退出后，把 `web` 改为 `desktop`，安装后重新打开。npm 包携带构建产物，使用者不需要下载源码或执行 `npm ci`。发布状态及维护步骤见 [发布指南](docs/publishing.md)。
+
+### 从旧的本地开发包升级
+
+如果此前安装的名称是 `@rivermind/dsh-plugin`，先完全退出 DSH，再移除旧注册并安装正式包，避免两个入口并存：
+
+```sh
+dsh plugin --profile desktop remove @rivermind/dsh-plugin
+dsh plugin --profile desktop add dsh-rivermind@0.3.0
+```
+
+Web 用户将 `desktop` 改为 `web`。升级不清理 `DSH_HOME/data/rivermind` 的长期记忆、预算和已结束牌局。
 
 ## 从 GitHub 安装
 
-源码仓库为 [jiangzeyuan/dsh-rivermind](https://github.com/jiangzeyuan/dsh-rivermind)，包名为 `@rivermind/dsh-plugin`。以下命令需要仓库的 `main` 分支已推送；远程 GitHub 安装流程仍需单独验收。
+源码仓库为 [jiangzeyuan/dsh-rivermind](https://github.com/jiangzeyuan/dsh-rivermind)，包名为 `dsh-rivermind`。以下命令需要仓库的 `main` 分支已推送；远程 GitHub 安装流程仍需单独验收。
 
 ### 推荐先下载源码并本地安装
 
@@ -92,17 +103,17 @@ dsh plugin --profile desktop add github:jiangzeyuan/dsh-rivermind#main
 
 ```yaml
 allowBuilds:
-  '@rivermind/dsh-plugin': true
+  'dsh-rivermind': true
 ```
 
 保留文件中已有的设置；若提示使用不同的精确包 key，采用提示里的 key。构建授权表示允许该包执行安装脚本。示例从 `main` 分支安装；需要固定版本时，将 `#main` 替换为 `#` 加已核对的完整提交哈希。流程依据 [DSH 官方插件打包与安装教程](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md) 和 [pnpm Git 仓库来源说明](https://pnpm.io/package-sources#git-repository)。
 
 ### 预构建包
 
-维护者可以执行 `npm pack` 生成 `rivermind-dsh-plugin-0.3.0.tgz`，并在未来的 GitHub Release 提供下载。构建产物、bundle 配置和文档会进入包，训练数据不会进入。下载后安装：
+维护者可以执行 `npm pack` 生成 `dsh-rivermind-0.3.0.tgz`，并在未来的 GitHub Release 提供下载。构建产物、bundle 配置和文档会进入包，训练数据不会进入。下载后安装：
 
 ```sh
-dsh plugin --profile desktop add ./rivermind-dsh-plugin-0.3.0.tgz
+dsh plugin --profile desktop add ./dsh-rivermind-0.3.0.tgz
 ```
 
 这一方式携带构建产物，用户不需要在本地编译 RiverMind。预构建包的离线安装和 Host／客户端入口加载检查已通过；当前尚无已发布的 Release；包检查见 `npm run release:check`。

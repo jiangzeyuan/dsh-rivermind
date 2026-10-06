@@ -1,5 +1,5 @@
 {
-  "name": "@rivermind/dsh-plugin",
+  "name": "dsh-rivermind",
   "version": "0.3.0",
   "license": "MIT",
   "type": "module",

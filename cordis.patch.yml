@@ -1,3 +1,3 @@
 - insert:
     - id: rivermind
-      name: '@rivermind/dsh-plugin'
+      name: 'dsh-rivermind'

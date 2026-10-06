@@ -6,13 +6,25 @@
 
 | 阶段 | 状态 | 完成凭据 |
 | --- | --- | --- |
-| v0.3 功能与文档 | 已完成开发，当前分支 `feat/v0.3` | 42 项测试、浏览器交互检查、完整设计和 CHANGELOG |
+| v0.3 功能与文档 | 已完成并合入 `main` | 42 项测试、浏览器交互检查、完整设计和 CHANGELOG |
 | npm 发布准备 | 元数据与预构建包检查已准备 | `npm run release:check` |
-| npm 正式发布 | 待发布；发布者需完成 npm 身份验证并具备包发布权限 | npm 可查询到目标版本 |
-| 从 registry 按包名安装 | 待 npm 发布后验收 | 干净 DSH profile 的安装与实际加载检查 |
+| npm 正式发布 | `0.3.0` 已发布；`0.3.1` 为安装文档与包简介修订，正在发布准备 | [npm 包](https://www.npmjs.com/package/dsh-rivermind)；registry 已确认 `0.3.0` |
+| 从 registry 按包名安装 | `0.3.0` 已通过独立 Web profile 验收 | 实际牌桌加载、完整规则牌局、复盘，以及重启后预算 / 记忆 / 历史保留；未调用模型 |
 | 市场收录 | 条目草稿已准备，尚未提交 | 收录 PR 合并，目录与市场更新 |
 
-正式包名统一为 `dsh-rivermind`，与仓库名一致。package metadata、bundle、客户端模块 ID 与 lockfile 均使用同一名称；公开 registry 未查到某名称不等于保证它可以注册，最终以发布校验为准。旧本地开发包的迁移步骤见 [README](../README.md#从旧的本地开发包升级)。
+### 已完成的 npm 安装验收
+
+2026-10-06，从公开 registry 用 `dsh plugin --profile web add dsh-rivermind@0.3.0` 安装到全新 `DSH_HOME`，没有使用本地目录或 `.tgz`。
+
+- 实际 DSH Web 载入牌桌入口与客户端，包中的 Host、客户端及 bundle 均存在。
+- 决策预算默认收起；在界面保存 120 秒 / 16 次后生效。
+- BB 箭头步长为 0.5，选择 2.5 BB 时确认按钮同时显示 50 筹码。
+- 完成一手规则陪练牌局，筹码守恒，更新公开行为记忆并保存历史复盘；未调用模型。
+- 关闭并重启该独立 DSH，确认预算、长期记忆与历史复盘保留。
+
+`0.3.1` 仅更新发布说明与包简介；其 registry 安装检查仍需在正式发布后完成。桌面真实应用及真实模型稳定性不能由上述规则模式验收替代。
+
+正式包名统一为 `dsh-rivermind`，与仓库名一致。package metadata、bundle、客户端模块 ID 与 lockfile 均使用同一名称；公开 registry 已发布 `0.3.0`。旧本地开发包的迁移步骤见 [README](../README.md#从旧的本地开发包升级)。
 
 ## 1. 完成并固定 v0.3 源码
 
@@ -25,7 +37,7 @@ npm run release:check
 
 检查包括类型、42 项测试、构建，以及真正的 `.tgz` 包内容、Host 导出和客户端模块注册。包必须包含构建产物、bundle、许可和 CHANGELOG；不得包含 `.data`、凭据或机器配置。
 
-当前开发提交从 `feat/v0.3` 推送。正式 npm 发布前，把已验收提交合入 `main`，确保源码、README 和即将发布的包一致。没有分叉时可使用：
+`0.3.0` 的已验收提交已从 `feat/v0.3` 快进合入 `main`。后续发布前，同样确保源码、README 和即将发布的包一致。没有分叉时可使用：
 
 ```sh
 git switch main
@@ -50,10 +62,10 @@ npm whoami --registry=https://registry.npmjs.org/
 
 ```sh
 npm publish --access public --registry=https://registry.npmjs.org/
-npm view dsh-rivermind@0.3.0 version dist.tarball --registry=https://registry.npmjs.org/
+npm view dsh-rivermind@0.3.1 version dist.tarball --registry=https://registry.npmjs.org/
 ```
 
-成功查询到 `0.3.0` 及 tarball 才算发布完成；不要将 dry run、Git push 或本地 `.tgz` 当作 npm 正式发布。已经发布的名称 / 版本不能直接覆盖，修复后升级补丁版本并追加 CHANGELOG。
+成功查询到 `0.3.1` 及 tarball 才算发布完成；不要将 dry run、Git push 或本地 `.tgz` 当作 npm 正式发布。已经发布的名称 / 版本不能直接覆盖，修复后升级补丁版本并追加 CHANGELOG。
 
 ## 3. 在独立 DSH 环境按包名验收
 
@@ -61,7 +73,7 @@ npm view dsh-rivermind@0.3.0 version dist.tarball --registry=https://registry.np
 
 ```sh
 RIVERMIND_VERIFY_HOME="$(mktemp -d)"
-DSH_HOME="$RIVERMIND_VERIFY_HOME" dsh plugin --profile web add dsh-rivermind@0.3.0
+DSH_HOME="$RIVERMIND_VERIFY_HOME" dsh plugin --profile web add dsh-rivermind@0.3.1
 DSH_HOME="$RIVERMIND_VERIFY_HOME" dsh --profile web --dump-config
 DSH_HOME="$RIVERMIND_VERIFY_HOME" dsh web --no-open --port 3081
 ```
@@ -71,7 +83,7 @@ DSH_HOME="$RIVERMIND_VERIFY_HOME" dsh web --no-open --port 3081
 常规用户目标命令是：
 
 ```sh
-dsh plugin --profile web add dsh-rivermind@0.3.0
+dsh plugin --profile web add dsh-rivermind@0.3.1
 dsh web
 ```
 

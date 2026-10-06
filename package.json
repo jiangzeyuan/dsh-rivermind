@@ -1,9 +1,9 @@
 {
   "name": "dsh-rivermind",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "license": "MIT",
   "type": "module",
-  "description": "Poker agents with independent decisions and traceable memory, built on DeepSeek Harness.",
+  "description": "Heads-up Texas Hold'em training for DeepSeek Harness, with an AI opponent, persistent public-action memory, and decision reviews.",
   "engines": {
     "node": ">=22"
   },

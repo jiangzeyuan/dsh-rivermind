@@ -113,7 +113,7 @@ allowBuilds:
 
 npm 包已可直接安装。社区市场收录需要向 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 提交 PR，目录接纳并更新后才会在 `dshmarket` 出现，详见 [市场提交说明](https://github.com/dsh-market/dsh-market#submit-your-plugin)。
 
-当前 npm 发布与独立安装验收均已完成，市场条目及 PR 文案已准备，收录申请尚未提交。实际进度见 [发布指南](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/publishing.md)。
+`dsh-rivermind@0.3.2` 已发布并通过独立安装验收。2026-10-07 已提交 [dshmarket 收录申请 #6768](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6768)，等待目录检查、维护者合并和市场同步。其他社区渠道与实际进度见 [发布指南](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/publishing.md)。
 
 ## 开发时临时加载
 

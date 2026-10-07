@@ -9,9 +9,9 @@
 | v0.3 功能与文档 | 已完成并合入 `main` | 42 项测试、浏览器交互检查、完整设计和 CHANGELOG |
 | v0.3.2 补丁 | 已提交并推送 `main`，对应标签 `v0.3.2` | 提交 [`e3f9339`](https://github.com/jiangzeyuan/dsh-rivermind/commit/e3f9339)；57 项测试、实际 DSH 合成运行及 Trace 浏览器验收 |
 | npm 发布准备 | 已完成 | 57 项测试、`npm run release:check` 和预构建包检查通过 |
-| npm 正式发布 | `0.3.0`、`0.3.1`、`0.3.2` 已发布，`latest` 为 `0.3.2` | [npm 包](https://www.npmjs.com/package/dsh-rivermind)；registry 版本 / Git 提交一致，README 与源码一致 |
+| npm 正式发布 | `0.3.0`、`0.3.1`、`0.3.2` 已发布，`latest` 为 `0.3.2` | [npm 包](https://www.npmjs.com/package/dsh-rivermind)；registry 版本 / Git 提交一致，npm README 与发布标签中的源码一致 |
 | 从 registry 按包名安装 | `0.3.0`、`0.3.1`、`0.3.2` 已通过独立 Web profile 验收；另验证 `0.3.1 → 0.3.2` | 实际牌桌、规则牌局、Trace / 记忆复制、模型说明和重启后数据保留；未调用模型 |
-| 市场收录 | 已准备并推送 fork 分支，PR 尚未提交 | [待提交分支](https://github.com/jiangzeyuan/awesome-dsh-plugin/tree/add-rivermind)；等待创建满一天后提交 |
+| 市场收录 | 2026-10-07 已提交 dshmarket 收录申请，等待检查、审核合并与同步 | [收录 PR #6768](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6768)；提交申请不等于已上架 |
 
 ### 已完成的 npm 安装验收
 
@@ -112,14 +112,27 @@ dsh web
 
 [dshmarket 提交说明](https://github.com/dsh-market/dsh-market#submit-your-plugin)指出它读取上述目录，合并后才由目录和市场更新；同步时间取决于其维护与任务运行，不保证立即可见。
 
-## 本次市场提交准备
+## 本次市场提交记录
 
-- 仓库已添加 `dsh-plugin`、`deepseek-harness` topics，已声明 `dsh.bundle`。
-- [fork 的 `add-rivermind` 分支](https://github.com/jiangzeyuan/awesome-dsh-plugin/tree/add-rivermind) 只新增一个 `data/plugins/jiangzeyuan__dsh-rivermind.yml`，官方条目格式及重复项检查通过。
-- [PR 文案](publishing/market-pr.md) 已补入 npm `0.3.2` 地址、三版安装及升级验收记录。
-- 原仓库创建于 2026-10-05 13:21:39 UTC，满一天的时间为 **2026-10-06 21:21:39（北京时间）**。本次选择在此时间之后提交，PR 尚未创建。
-- 届时打开 [创建收录 PR 的比较页](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/compare/main...jiangzeyuan:awesome-dsh-plugin:add-rivermind?expand=1)，核对只新增上述 YAML，使用已准备文案提交。
-- 提交后仍需目录 CI 通过和维护者审核合并；完成 PR 不等于市场已收录。
+2026-10-07，向 `awesome-dsh-plugin/awesome-dsh-plugin` 提交 [收录 PR #6768](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6768)，标题为 `Add jiangzeyuan/dsh-rivermind`，分类为 `fun`。
+
+- 仓库公开时间已超过一天，已添加 `dsh-plugin`、`deepseek-harness` topics，并声明 `dsh.bundle`。
+- [fork 的 `add-rivermind` 分支](https://github.com/jiangzeyuan/awesome-dsh-plugin/tree/add-rivermind) 只新增一个 `data/plugins/jiangzeyuan__dsh-rivermind.yml`，目录格式与重复项检查通过。
+- [提交文案](publishing/market-pr.md) 说明已发布的 `0.3.2`、三版按包名安装及升级验收，未将规则模式验收描述为模型稳定性验证。
+- 在线 CI 与审核状态以 PR 页面为准。只有维护者合并、目录更新且市场出现实际条目后，才能记录为已收录。
+
+## 可覆盖的社区市场与目录
+
+以下入口的核对日期为 2026-10-07，按本项目的推进顺序排列，不作为用户规模排名。各渠道独立维护；向一个目录提交申请，不代表其他渠道同时收录。
+
+| 渠道 | 使用形式 | 作者收录方式 | RiverMind 当前进度 |
+| --- | --- | --- | --- |
+| [dshmarket](https://github.com/dsh-market/dsh-market) / [awesome-dsh-plugin](https://awesome-dsh-plugin.com/) | 安装到 DSH 的可视化市场；npm 包名 `dshmarket` | 向 `awesome-dsh-plugin/awesome-dsh-plugin` 提交单条 YAML 的 PR；合并后同步 | 已提交 [#6768](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6768)，等待审核和同步 |
+| [DSH Plugin Hub](https://github.com/dshplugin/dsh-plugin-hub) / [dsh-plugin.org](https://dsh-plugin.org/zh/submit) | 安装到 DSH 的插件中心；npm 包名 `dsh-plugin` | 公开仓库加 `dsh-plugin` topic，按提交页要求提供安装、许可与兼容信息；可提交收录 Issue | 已满足 topic 发现前提，本次未另行提交；实际收录未验收 |
+| [DSH Directory](https://dsh.directory/) | 网页插件目录 | 网站 Submit 入口提交仓库；也从 `dsh-plugin` topic 发现候选，检查静态 bundle 后收录 | 已满足 topic 发现前提，本次未另行提交；实际收录未验收 |
+| [dsh.fish](https://github.com/stvlynn/dsh.fish) | 网页目录、CLI 与 `@dsh-fish/hub` 插件 | 从 `dsh-plugin` topic 抓取，并按仓库元数据识别可安装内容 | 已满足 topic 发现前提，实际索引未验收；作为补充渠道 |
+
+本次优先提交 `dshmarket` 使用的目录。后续可依次核对其他渠道中的实际条目；未出现时，使用各自的提交入口补充申请，避免重复提交。引用入口：[dshmarket 提交说明](https://github.com/dsh-market/dsh-market#submit-your-plugin)、[DSH Plugin 提交要求](https://dsh-plugin.org/zh/submit)、[DSH Directory FAQ](https://dsh.directory/)、[dsh.fish 作者说明](https://github.com/stvlynn/dsh.fish#quick-start)。
 
 ## 后续维护
 

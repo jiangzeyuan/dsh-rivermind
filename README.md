@@ -111,9 +111,9 @@ allowBuilds:
 
 ## 插件市场与收录
 
-npm 包已可直接安装。社区市场收录需要向 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 提交 PR，目录接纳并更新后才会在 `dshmarket` 出现，详见 [市场提交说明](https://github.com/dsh-market/dsh-market#submit-your-plugin)。
+npm 包已可直接安装。[DSH Plugin Hub / dsh-plugin.org](https://dsh-plugin.org/zh/plugins/jiangzeyuan/dsh-rivermind) 已收录 RiverMind，网页目录与可安装的 `dsh-plugin` 市场使用同一数据源。各社区市场独立维护，收录申请与正式上架分别确认。
 
-`dsh-rivermind@0.3.2` 已发布并通过独立安装验收。2026-10-07 已提交 [dshmarket 收录申请 #6768](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6768)，等待目录检查、维护者合并和市场同步。其他社区渠道与实际进度见 [发布指南](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/publishing.md)。
+`dsh-rivermind@0.3.2` 已发布并通过独立安装验收。截至 2026-10-08，[dshmarket 收录 PR #6768](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6768) 等待维护者合并和市场同步；另已提交 [DSH Directory 申请 #345](https://github.com/alexchenzl/dsh-plugin-directory/issues/345) 与 [dsh.fish 人工索引请求 #33](https://github.com/stvlynn/dsh.fish/issues/33)。两处申请均等待处理，尚未确认上架。完整进度见 [发布指南](https://github.com/jiangzeyuan/dsh-rivermind/blob/main/docs/publishing.md)。
 
 ## 开发时临时加载
 

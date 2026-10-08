@@ -11,7 +11,7 @@
 | npm 发布准备 | 已完成 | 57 项测试、`npm run release:check` 和预构建包检查通过 |
 | npm 正式发布 | `0.3.0`、`0.3.1`、`0.3.2` 已发布，`latest` 为 `0.3.2` | [npm 包](https://www.npmjs.com/package/dsh-rivermind)；registry 版本 / Git 提交一致，npm README 与发布标签中的源码一致 |
 | 从 registry 按包名安装 | `0.3.0`、`0.3.1`、`0.3.2` 已通过独立 Web profile 验收；另验证 `0.3.1 → 0.3.2` | 实际牌桌、规则牌局、Trace / 记忆复制、模型说明和重启后数据保留；未调用模型 |
-| 市场收录 | 2026-10-07 已提交 dshmarket 收录申请，等待检查、审核合并与同步 | [收录 PR #6768](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6768)；提交申请不等于已上架 |
+| 市场收录 | 2026-10-08 已确认 DSH Plugin Hub / dsh-plugin.org 收录；dshmarket 等待合并，另已补投两个目录 | [已收录详情](https://dsh-plugin.org/zh/plugins/jiangzeyuan/dsh-rivermind)、[PR #6768](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6768)、[Directory #345](https://github.com/alexchenzl/dsh-plugin-directory/issues/345)、[fish #33](https://github.com/stvlynn/dsh.fish/issues/33)；申请与上架分别确认 |
 
 ### 已完成的 npm 安装验收
 
@@ -121,18 +121,26 @@ dsh web
 - [提交文案](publishing/market-pr.md) 说明已发布的 `0.3.2`、三版按包名安装及升级验收，未将规则模式验收描述为模型稳定性验证。
 - 在线 CI 与审核状态以 PR 页面为准。只有维护者合并、目录更新且市场出现实际条目后，才能记录为已收录。
 
+## 2026-10-08 补投与简介更新
+
+- 核对确认 [DSH Plugin Hub / dsh-plugin.org 的 RiverMind 详情页](https://dsh-plugin.org/zh/plugins/jiangzeyuan/dsh-rivermind) 已存在，页面提供 `dsh plugin --profile web add dsh-rivermind` 安装命令。按维护者当前安排，已收录市场的文案暂时保留，未提交文案修改申请。
+- 向 DSH Directory 提交 [Issue #345](https://github.com/alexchenzl/dsh-plugin-directory/issues/345)，使用其四项表单字段、`Themes & Fun (themes)` 分类、根目录包地址和单行 npm 安装命令。是否接纳以目录回复、关闭状态及实际详情页为准。
+- 向 dsh.fish 的维护仓库提交 [人工索引请求 #33](https://github.com/stvlynn/dsh.fish/issues/33)，包含 `github:jiangzeyuan/dsh-rivermind`、`npm:dsh-rivermind`、静态 bundle 声明和安装说明。这是人工收录申请，未通过网站提交或认领；其 [提交文档](https://github.com/stvlynn/dsh.fish/blob/main/frontend/content/docs/submit.zh-CN.mdx) 要求已登录的浏览器会话，设备令牌不能发布。
+- 已将 GitHub 仓库简介、README 开头和 [dshmarket 条目](publishing/jiangzeyuan__dsh-rivermind.yml) 中的简称扩写为“德州扑克”，并保留 `Texas Hold'em`，增加 `poker`、`texas-holdem` topics。尚未合并的 [PR #6768](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6768) 已更新对应条目，无需重复开 PR。
+- 本次为仓库文档、元数据和市场申请更新，npm `0.3.2` 保持已发布的版本快照；README 的新增文案会随下一次 npm 发版进入包页面。
+
 ## 可覆盖的社区市场与目录
 
-以下入口的核对日期为 2026-10-07，按本项目的推进顺序排列，不作为用户规模排名。各渠道独立维护；向一个目录提交申请，不代表其他渠道同时收录。
+以下入口的核对日期为 2026-10-08，按本项目的推进顺序排列，不作为用户规模排名。各渠道独立维护；向一个目录提交申请，不代表其他渠道同时收录。
 
 | 渠道 | 使用形式 | 作者收录方式 | RiverMind 当前进度 |
 | --- | --- | --- | --- |
 | [dshmarket](https://github.com/dsh-market/dsh-market) / [awesome-dsh-plugin](https://awesome-dsh-plugin.com/) | 安装到 DSH 的可视化市场；npm 包名 `dshmarket` | 向 `awesome-dsh-plugin/awesome-dsh-plugin` 提交单条 YAML 的 PR；合并后同步 | 已提交 [#6768](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6768)，等待审核和同步 |
-| [DSH Plugin Hub](https://github.com/dshplugin/dsh-plugin-hub) / [dsh-plugin.org](https://dsh-plugin.org/zh/submit) | 安装到 DSH 的插件中心；npm 包名 `dsh-plugin` | 公开仓库加 `dsh-plugin` topic，按提交页要求提供安装、许可与兼容信息；可提交收录 Issue | 已满足 topic 发现前提，本次未另行提交；实际收录未验收 |
-| [DSH Directory](https://dsh.directory/) | 网页插件目录 | 网站 Submit 入口提交仓库；也从 `dsh-plugin` topic 发现候选，检查静态 bundle 后收录 | 已满足 topic 发现前提，本次未另行提交；实际收录未验收 |
-| [dsh.fish](https://github.com/stvlynn/dsh.fish) | 网页目录、CLI 与 `@dsh-fish/hub` 插件 | 从 `dsh-plugin` topic 抓取，并按仓库元数据识别可安装内容 | 已满足 topic 发现前提，实际索引未验收；作为补充渠道 |
+| [DSH Plugin Hub](https://github.com/dshplugin/dsh-plugin-hub) / [dsh-plugin.org](https://dsh-plugin.org/zh/submit) | 安装到 DSH 的插件中心；npm 包名 `dsh-plugin` | 公开仓库加 `dsh-plugin` topic，按提交页要求提供安装、许可与兼容信息；可提交收录 Issue | 已确认 [RiverMind 详情页](https://dsh-plugin.org/zh/plugins/jiangzeyuan/dsh-rivermind) 可访问并提供 npm 安装命令；文案暂时保留 |
+| [DSH Directory](https://dsh.directory/) | 网页插件目录 | 网站 Submit 入口提交仓库；也从 `dsh-plugin` topic 发现候选，检查静态 bundle 后收录 | 已补投 [Issue #345](https://github.com/alexchenzl/dsh-plugin-directory/issues/345)，等待目录检查和接纳 |
+| [dsh.fish](https://github.com/stvlynn/dsh.fish) | 网页目录、CLI 与 `@dsh-fish/hub` 插件 | 从 `dsh-plugin` topic 抓取，并按仓库元数据识别可安装内容 | 已提交 [人工索引请求 #33](https://github.com/stvlynn/dsh.fish/issues/33)，等待维护者处理；未通过网站认领 |
 
-本次优先提交 `dshmarket` 使用的目录。后续可依次核对其他渠道中的实际条目；未出现时，使用各自的提交入口补充申请，避免重复提交。引用入口：[dshmarket 提交说明](https://github.com/dsh-market/dsh-market#submit-your-plugin)、[DSH Plugin 提交要求](https://dsh-plugin.org/zh/submit)、[DSH Directory FAQ](https://dsh.directory/)、[dsh.fish 作者说明](https://github.com/stvlynn/dsh.fish#quick-start)。
+已收录的 DSH Plugin Hub 维持当前条目；其余渠道按表中的申请持续核对实际收录状态。提交 Issue 或 PR 本身不代表条目已经上架。引用入口：[dshmarket 提交说明](https://github.com/dsh-market/dsh-market#submit-your-plugin)、[DSH Plugin 提交要求](https://dsh-plugin.org/zh/submit)、[DSH Directory FAQ](https://dsh.directory/)、[dsh.fish 作者说明](https://github.com/stvlynn/dsh.fish#quick-start)。
 
 ## 后续维护
 

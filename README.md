@@ -1,8 +1,8 @@
-# RiverMind · 德扑训练场
+# RiverMind · 德州扑克训练场
 
-基于 DeepSeek Harness 的德扑 Agent 项目：独立玩家、受限工具、可追溯决策，以及按玩家保存的长期记忆。
+基于 DeepSeek Harness 的德州扑克 AI 陪练与 Agent 项目：独立玩家、受限工具、可追溯决策，以及按玩家保存的长期记忆。
 
-当前为 v0.3.2：**你与 Iris 的双人无限注德扑训练桌**。支持同栏展示的 BB / 底池比例快捷下注、BB / 筹码双单位展示、小数 BB 输入、默认收起且可保存的 Iris 决策预算，以及条件画像、记忆引用状态、历史复盘、紧凑的 Trace 复制入口与可重复的规则评估。模型与行动超时分别诊断，复盘记录实际请求模型。
+当前为 v0.3.2：**你与 Iris 的双人无限注德州扑克训练桌**。支持同栏展示的 BB / 底池比例快捷下注、BB / 筹码双单位展示、小数 BB 输入、默认收起且可保存的 Iris 决策预算，以及条件画像、记忆引用状态、历史复盘、紧凑的 Trace 复制入口与可重复的规则评估。模型与行动超时分别诊断，复盘记录实际请求模型。
 
 ![v0.1 DSH 牌桌示例，新版增加条件画像和历史复盘](https://raw.githubusercontent.com/jiangzeyuan/dsh-rivermind/main/docs/images/rivermind-dsh.jpg)
 
